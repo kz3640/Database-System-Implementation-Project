@@ -1,1 +1,14 @@
-test
+TODO:
+
+1. main function with while loop that reads input 
+2. create file
+    + covert data to bytes
+    + write to file
+-. Displays
+3. read file 
+    + read in bytes
+    + convert bytes
+
+4. Buffer
+5. query processor
+6. Test (If time)
