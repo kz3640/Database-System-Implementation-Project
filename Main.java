@@ -4,10 +4,6 @@ import java.util.Arrays;
 import java.util.Scanner;
 
 public class Main {
-    private static BinaryWriter writer;
-    private static StorageManager storageManager;
-    private static BinaryReader reader;
-
     public static void main(String[] args) throws IOException {
         // if (args.length != 3) {
         // System.out.println("Expected 3 arguments, got " + args.length);
@@ -19,9 +15,10 @@ public class Main {
         boolean quit = false;
         Scanner scan = new Scanner(System.in);
 
-        writer = new BinaryWriter();
-        reader = new BinaryReader();
-        storageManager = new StorageManager(writer, reader);
+        BinaryWriter writer = new BinaryWriter();
+        BinaryReader reader = new BinaryReader();
+        StorageManager storageManager = new StorageManager(writer, reader);
+        InputHandler inputHandler = new InputHandler(writer, reader, storageManager);
 
 
         // enter a command
@@ -46,34 +43,9 @@ public class Main {
         // - 'v' as a character
 
         while (!quit) {
-            System.out.println("Enter data (int, boolean, char, string, or double):");
+            System.out.println("Enter command");
             String[] input = scan.nextLine().split(" ");
-            String[] newInput = Arrays.copyOfRange(input, 1, input.length);
-
-            if (input[0].equals("catalog")) {
-                storageManager.createCatalog(newInput);
-                continue;
-            }
-            if (input[0].equals("insert")) {
-                ArrayList<Object> data = writer.addDataToArray(newInput);
-                storageManager.addRecord(data);
-                continue;
-            }
-            if (input[0].equals("read")) {
-                ArrayList<Character> schema = reader.getSchema("catalog.txt");
-                for (Character character : schema) {
-                    System.out.println(character);
-                }
-                continue;
-            }
-            if (input[0].equals("display")) {
-                ArrayList<Character> schema = reader.getSchema("catalog.txt");
-                ArrayList<Object> record = reader.readRecord("tst.txt", schema);
-                for (Object object : record) {
-                    System.out.println(object);
-                }
-                continue;
-            }
+            inputHandler.handleInput(input);
         }
     }
 
