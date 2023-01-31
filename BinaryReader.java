@@ -1,7 +1,10 @@
-import java.io.DataInputStream;
-import java.io.FileInputStream;
+import java.io.DataInputStream;import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+
+import DataTypes.OtherDataType;
+import DataTypes.SchemaDataType;
+import DataTypes.Varchar;
 
 public class BinaryReader {
     
@@ -10,24 +13,28 @@ public class BinaryReader {
         return;
     }
 
-    public ArrayList<Character> getSchema(String filePath) {
-        ArrayList<Character> characters = new ArrayList<>();
+    public ArrayList<SchemaDataType> getSchema(String filePath) {
+        ArrayList<SchemaDataType> characters = new ArrayList<>();
         try (FileInputStream inputStream = new FileInputStream(filePath)) {
             DataInputStream dis = new DataInputStream(inputStream);
             while (dis.available() > 0) {
                 char resultChar = dis.readChar();
-                characters.add(resultChar);
+                if (resultChar == 'v') {
+                    int stringLength = dis.readInt();
+                    characters.add(new Varchar(stringLength));
+                } else {
+                    characters.add(new OtherDataType(resultChar));
+                }
             }
-        } catch (IOException e) {
-        }
+        } catch (IOException e) {}
         return characters;
     }
 
-    public ArrayList<Object> readRecord(String fileName, ArrayList<Character> schema) throws IOException {
+    public ArrayList<Object> readRecord(String fileName, ArrayList<SchemaDataType> schema) throws IOException {
         ArrayList<Object> data = new ArrayList<>();
         try (DataInputStream dis = new DataInputStream(new FileInputStream(fileName))) {
-            for (Character c : schema) {
-                switch (c) {
+            for (SchemaDataType c : schema) {
+                switch (c.getLetter()) {
                     case 'i':
                         data.add(dis.readInt());
                         break;

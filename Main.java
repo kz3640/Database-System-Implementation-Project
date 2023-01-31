@@ -1,6 +1,4 @@
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Scanner;
 
 public class Main {
@@ -19,7 +17,6 @@ public class Main {
         BinaryReader reader = new BinaryReader();
         StorageManager storageManager = new StorageManager(writer, reader);
         InputHandler inputHandler = new InputHandler(writer, reader, storageManager);
-
 
         // enter a command
         // - "catalog" to display the available catalog of items
