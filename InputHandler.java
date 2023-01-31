@@ -2,6 +2,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import DataTypes.SchemaDataType;
+
 public class InputHandler {
     private BinaryWriter writer;
     private BinaryReader reader;
@@ -26,17 +28,29 @@ public class InputHandler {
             storageManager.addRecord(data);
         }
         if (input[0].equals("read")) {
-            ArrayList<Character> schema = reader.getSchema("catalog.txt");
-            for (Character character : schema) {
-                System.out.println(character);
+            ArrayList<SchemaDataType> schema = reader.getSchema("catalog.txt");
+            for (SchemaDataType character : schema) {
+                // character.getType();
+                if (character.getLetter() == 'v') {
+                    System.out.println(character.getLetter());
+                    System.out.println(character.getLength());
+                } else {
+                    System.out.println(character.getLetter());
+                }
             }
         }
         if (input[0].equals("display")) {
-            ArrayList<Character> schema = reader.getSchema("catalog.txt");
-            ArrayList<Object> record = reader.readRecord("tst.txt", schema);
-            for (Object object : record) {
-                System.out.println(object);
+            ArrayList<SchemaDataType> schema = reader.getSchema("catalog.txt");
+            ArrayList<ArrayList<Object>>  allRecords = storageManager.getAllRecords("tst.txt", schema);
+            for (ArrayList<Object> record : allRecords) {
+                for (Object col : record) {
+                    System.out.println(col);
+                }
             }
+            // ArrayList<Object> record = reader.readRecord("tst.txt", schema);
+            // for (Object object : record) {
+            //     System.out.println(object);
+            // }
         }
     }
 }

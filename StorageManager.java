@@ -1,10 +1,14 @@
+import java.io.DataInputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+
+import DataTypes.SchemaDataType;
 
 public class StorageManager {
     private BinaryWriter writer;
     private BinaryReader reader;
-    
+
     public StorageManager(BinaryWriter writer, BinaryReader reader) {
         this.writer = writer;
         this.reader = reader;
@@ -13,17 +17,17 @@ public class StorageManager {
 
     public void createCatalog(String[] input) throws IOException {
         ArrayList<Object> catalog = writer.addDataToArray(input);
-        writer.writeToFile(catalog, "catalog.txt");
+        writer.writeToFile(catalog, "catalog.txt", null);
     }
 
     public boolean checkData(ArrayList<Object> data) {
-        ArrayList<Character> schema = reader.getSchema("catalog.txt");
+        ArrayList<SchemaDataType> schema = reader.getSchema("catalog.txt");
         if (data.size() != schema.size()) {
             return false;
         }
 
         for (int index = 0; index < data.size(); index++) {
-            switch (schema.get(index)) {
+            switch (schema.get(index).getLetter()) {
                 case 'i':
                     if (!(data.get(index) instanceof Integer)) {
                         return false;
@@ -56,12 +60,50 @@ public class StorageManager {
         return true;
     }
 
+    public ArrayList<ArrayList<Object>> getAllRecords(String fileName, ArrayList<SchemaDataType> schema) {
+
+
+        ArrayList<ArrayList<Object>> dataList = new ArrayList<>();
+        try (DataInputStream dis = new DataInputStream(new FileInputStream(fileName))) {
+            while (true) {
+                ArrayList<Object> data = new ArrayList<>();
+                int dataLength = dis.readInt();
+                for (SchemaDataType c : schema) {
+                    switch (c.getLetter()) {
+                        case 'i':
+                            data.add(dis.readInt());
+                            break;
+                        case 'b':
+                            data.add(dis.readBoolean());
+                            break;
+                        case 'c':
+                            data.add(dis.readChar());
+                            break;
+                        case 'v':
+                            data.add(dis.readUTF());
+                            break;
+                        case 'd':
+                            data.add(dis.readDouble());
+                            break;
+                    }
+                }
+                dataList.add(data);
+            }
+        } catch (java.io.EOFException e) {
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return dataList;
+       
+    }
 
     public void addRecord(ArrayList<Object> data) throws IOException {
         boolean validInput = checkData(data);
         if (!validInput) {
             return;
         }
-        writer.writeToFile(data, "tst.txt");
+        int recordSize = writer.calculateBytes(data);
+        writer.writeToFile(data, "tst.txt", recordSize);
     }
 }
