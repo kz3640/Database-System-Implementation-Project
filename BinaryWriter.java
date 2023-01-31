@@ -16,7 +16,9 @@ public class BinaryWriter {
         try (DataOutputStream dos = new DataOutputStream(new FileOutputStream(fileName, true));
                 DataInputStream dis = new DataInputStream(new FileInputStream(fileName))) {
 
-            while (true) {
+            // read until end of tile
+            // need to change this to read until correct spot to insert
+            while (true && recordSize != null) {
                 try {
                     int prevRecordSize = dis.readInt();
                     dis.skip(prevRecordSize);
@@ -24,11 +26,7 @@ public class BinaryWriter {
                     break;
                 }
             }
-            // int offset = (int) dis.skip(dis.available() - 4);
-            // if (offset > 0) {
-            // int prevRecordSize = dis.readInt();
-            // dis.skip(prevRecordSize);
-            // }
+            // write record size
             if (recordSize != null) {
                 dos.writeInt(recordSize);
             }
@@ -46,20 +44,7 @@ public class BinaryWriter {
                 }
             }
         }
-
-        // try (DataOutputStream dos = new DataOutputStream(new
-        // FileOutputStream(fileName))) {
-        // }
     }
-
-    // public void findNextFreeSpace(String fileName) throws IOException {
-    // try () {
-    // int recordSize;
-    // while ((recordSize = fis.read()) != -1) {
-    // fis.skip(recordSize);
-    // }
-    // }
-    // }
 
     public int calculateBytes(ArrayList<Object> data) {
         int size = 0;

@@ -47,10 +47,6 @@ public class InputHandler {
                     System.out.println(col);
                 }
             }
-            // ArrayList<Object> record = reader.readRecord("tst.txt", schema);
-            // for (Object object : record) {
-            //     System.out.println(object);
-            // }
         }
     }
 }
