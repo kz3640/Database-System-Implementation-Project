@@ -44,6 +44,7 @@ public class Main {
             String[] input = scan.nextLine().split(" ");
             inputHandler.handleInput(input);
         }
+        scan.close();
     }
 
     // 4.2 create catalog
