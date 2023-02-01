@@ -1,10 +1,14 @@
-package DataTypes;
+package Schema;
 
-public class OtherDataType implements SchemaDataType{
+public class BICD implements SchemaAttribute{
+    private String attributeName;
     private Character character;
+    private boolean isPrimaryKey;
 
-    public OtherDataType(Character character) {
+    public BICD(String attributeName, Character character, boolean isPrimaryKey) {
+        this.attributeName = attributeName;
         this.character = character;
+        this.isPrimaryKey = isPrimaryKey;
     }
 
     public Class<?> getType() {
@@ -28,5 +32,13 @@ public class OtherDataType implements SchemaDataType{
 
     public Character getLetter() {
         return this.character;
+    }
+
+    public boolean isPrimaryKey() {
+        return this.isPrimaryKey;
+    }
+
+    public String getAttributeName() {
+        return this.attributeName;
     }
 }
