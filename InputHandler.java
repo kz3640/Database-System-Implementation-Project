@@ -1,8 +1,10 @@
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-import DataTypes.SchemaDataType;
+import Schema.Schema;
+import Schema.SchemaAttribute;
 
 public class InputHandler {
     private BinaryWriter writer;
@@ -23,30 +25,33 @@ public class InputHandler {
         if (input[0].equals("catalog")) {
             storageManager.createCatalog(newInput);
         }
+        if (input[0].equals("create")) {
+            storageManager.createCatalog(newInput);
+        }
         if (input[0].equals("insert")) {
             ArrayList<Object> data = writer.addDataToArray(newInput);
             storageManager.addRecord(data);
         }
         if (input[0].equals("read")) {
-            ArrayList<SchemaDataType> schema = reader.getSchema("catalog.txt");
-            for (SchemaDataType character : schema) {
-                // character.getType();
-                if (character.getLetter() == 'v') {
-                    System.out.println(character.getLetter());
-                    System.out.println(character.getLength());
-                } else {
-                    System.out.println(character.getLetter());
-                }
-            }
+            Schema schema = reader.getSchema("catalog.txt");
+            schema.printTable();
+        }
+        if (input[0].equals("delete")) {
+            File myObj = new File("database.txt");
+            myObj.delete();
         }
         if (input[0].equals("display")) {
-            ArrayList<SchemaDataType> schema = reader.getSchema("catalog.txt");
-            ArrayList<ArrayList<Object>>  allRecords = storageManager.getAllRecords("tst.txt", schema);
+            ArrayList<SchemaAttribute> schema = reader.getSchema("catalog.txt").getAttributes();
+            ArrayList<ArrayList<Object>>  allRecords = storageManager.getAllRecords("database.txt", schema);
             for (ArrayList<Object> record : allRecords) {
+                System.out.print("\n record: " + allRecords.indexOf(record));
                 for (Object col : record) {
-                    System.out.println(col);
+                    System.out.print(" | ");
+                    System.out.print(col);
                 }
+                System.out.print("\n");
             }
+            System.out.print("\n");
         }
     }
 }

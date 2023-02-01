@@ -2,9 +2,10 @@ import java.io.DataInputStream;import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 
-import DataTypes.OtherDataType;
-import DataTypes.SchemaDataType;
-import DataTypes.Varchar;
+import Schema.BICD;
+import Schema.Schema;
+import Schema.SchemaAttribute;
+import Schema.Varchar;
 
 public class BinaryReader {
     
@@ -13,27 +14,46 @@ public class BinaryReader {
         return;
     }
 
-    public ArrayList<SchemaDataType> getSchema(String filePath) {
-        ArrayList<SchemaDataType> characters = new ArrayList<>();
+    public Schema getSchema(String filePath) {
+        ArrayList<SchemaAttribute> attributes = new ArrayList<>();
         try (FileInputStream inputStream = new FileInputStream(filePath)) {
             DataInputStream dis = new DataInputStream(inputStream);
+            
+            String tableName = dis.readUTF();
             while (dis.available() > 0) {
+                String attrName;
+                try { 
+                    attrName = dis.readUTF();
+                } catch (IOException e) {
+                    break;
+                }
                 char resultChar = dis.readChar();
+
+                // isPrimary key
+                boolean isPrimary = false;
+                if (resultChar == 'p') {
+                    isPrimary = true;
+                    resultChar = dis.readChar();
+                }
+
+                // is string, need length
                 if (resultChar == 'v') {
                     int stringLength = dis.readInt();
-                    characters.add(new Varchar(stringLength));
+                    attributes.add(new Varchar(attrName, stringLength, isPrimary));
                 } else {
-                    characters.add(new OtherDataType(resultChar));
+                    attributes.add(new BICD(attrName, resultChar, isPrimary));
                 }
             }
+            return new Schema(tableName, attributes);
         } catch (IOException e) {}
-        return characters;
+
+        return null;
     }
 
-    public ArrayList<Object> readRecord(String fileName, ArrayList<SchemaDataType> schema) throws IOException {
+    public ArrayList<Object> readRecord(String fileName, ArrayList<SchemaAttribute> schema) throws IOException {
         ArrayList<Object> data = new ArrayList<>();
         try (DataInputStream dis = new DataInputStream(new FileInputStream(fileName))) {
-            for (SchemaDataType c : schema) {
+            for (SchemaAttribute c : schema) {
                 switch (c.getLetter()) {
                     case 'i':
                         data.add(dis.readInt());

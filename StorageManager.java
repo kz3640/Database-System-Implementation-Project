@@ -3,7 +3,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 
-import DataTypes.SchemaDataType;
+import Schema.SchemaAttribute;
 
 public class StorageManager {
     private BinaryWriter writer;
@@ -16,12 +16,14 @@ public class StorageManager {
     }
 
     public void createCatalog(String[] input) throws IOException {
+
+        // parse insert table command
         ArrayList<Object> catalog = writer.addDataToArray(input);
         writer.writeToFile(catalog, "catalog.txt", null);
     }
 
     public boolean checkData(ArrayList<Object> data) {
-        ArrayList<SchemaDataType> schema = reader.getSchema("catalog.txt");
+        ArrayList<SchemaAttribute> schema = reader.getSchema("catalog.txt").getAttributes();
         if (data.size() != schema.size()) {
             return false;
         }
@@ -60,7 +62,7 @@ public class StorageManager {
         return true;
     }
 
-    public ArrayList<ArrayList<Object>> getAllRecords(String fileName, ArrayList<SchemaDataType> schema) {
+    public ArrayList<ArrayList<Object>> getAllRecords(String fileName, ArrayList<SchemaAttribute> schema) {
 
 
         ArrayList<ArrayList<Object>> dataList = new ArrayList<>();
@@ -68,7 +70,7 @@ public class StorageManager {
             while (true) {
                 ArrayList<Object> data = new ArrayList<>();
                 int dataLength = dis.readInt();
-                for (SchemaDataType c : schema) {
+                for (SchemaAttribute c : schema) {
                     switch (c.getLetter()) {
                         case 'i':
                             data.add(dis.readInt());
@@ -104,6 +106,6 @@ public class StorageManager {
             return;
         }
         int recordSize = writer.calculateBytes(data);
-        writer.writeToFile(data, "tst.txt", recordSize);
+        writer.writeToFile(data, "database.txt", recordSize);
     }
 }
