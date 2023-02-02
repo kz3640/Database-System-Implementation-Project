@@ -4,11 +4,13 @@ public class Varchar implements SchemaAttribute {
     private String attributeName;
     private int length;
     private boolean isPrimaryKey;;
+    private boolean notNull;;
 
-    public Varchar(String attributeName, int length, boolean isPrimaryKey) {
+    public Varchar(String attributeName, int length, boolean isPrimaryKey, boolean notNull) {
         this.attributeName = attributeName;
         this.length = length;
         this.isPrimaryKey = isPrimaryKey;
+        this.notNull = notNull;
     }
 
     public int getLength() {
@@ -29,5 +31,9 @@ public class Varchar implements SchemaAttribute {
 
     public String getAttributeName() {
         return this.attributeName;
+    }
+
+    public boolean isNotNull() {
+        return notNull;
     }
 }
