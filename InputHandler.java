@@ -30,7 +30,8 @@ public class InputHandler {
         }
         if (input[0].equals("insert")) {
             ArrayList<Object> data = writer.addDataToArray(newInput);
-            storageManager.addRecord(data);
+            Schema schema = reader.getSchema("catalog.txt");
+            storageManager.addRecord(data, schema);
         }
         if (input[0].equals("read")) {
             Schema schema = reader.getSchema("catalog.txt");

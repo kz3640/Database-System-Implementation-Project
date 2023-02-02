@@ -93,9 +93,7 @@ public class BinaryReader {
                 dataList.add(data);
             }
         } catch (java.io.EOFException e) {
-
         } catch (IOException e) {
-            e.printStackTrace();
         }
         return dataList;
     }

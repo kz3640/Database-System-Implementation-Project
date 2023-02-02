@@ -1,8 +1,10 @@
 import java.io.DataInputStream;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 
+import Schema.Schema;
 import Schema.SchemaAttribute;
 
 public class StorageManager {
@@ -16,7 +18,6 @@ public class StorageManager {
     }
 
     public void createCatalog(String[] input) throws IOException {
-
         // parse insert table command
         ArrayList<Object> catalog = writer.addDataToArray(input);
         writer.writeSchemaToFile(catalog, "catalog.txt");
@@ -72,13 +73,61 @@ public class StorageManager {
         return reader.getAllRecords(fileName, schema);
     }
 
-    public void addRecord(ArrayList<Object> data) throws IOException {
+    public void insertRecordInPage(ArrayList<ArrayList<Object>> allRecords, ArrayList<Object> data,
+            int indexOfPrimaryKey) {
+        if (allRecords.size() == 0) {
+            allRecords.add(data);
+            return;
+        }
+
+        for (int i = 0; i < allRecords.size(); i++) {
+            ArrayList<Object> record = allRecords.get(i);
+            Object primaryKeyRecord = record.get(indexOfPrimaryKey);
+            Object primaryKeyData = data.get(indexOfPrimaryKey);
+            if (primaryKeyData instanceof Integer) {
+                if ((Integer) primaryKeyRecord > (Integer) primaryKeyData) {
+                    allRecords.add(i, data);
+                    return;
+                }
+            } else if (primaryKeyData instanceof Boolean) {
+                if (!((Boolean) primaryKeyRecord) && ((Boolean) primaryKeyData)) {
+                    allRecords.add(i, data);
+                    return;
+                }
+            } else if (primaryKeyData instanceof Character) {
+                if ((Character) primaryKeyRecord > (Character) primaryKeyData) {
+                    allRecords.add(i, data);
+                    return;
+                }
+            } else if (primaryKeyData instanceof String) {
+                if (((String) primaryKeyRecord).compareTo((String) primaryKeyData) > 0) {
+                    allRecords.add(i, data);
+                    return;
+                }
+            } else if (primaryKeyData instanceof Double) {
+                if ((Double) primaryKeyRecord > (Double) primaryKeyData) {
+                    allRecords.add(i, data);
+                    return;
+                }
+            }
+        }
+        allRecords.add(data);
+    }
+
+    public void addRecord(ArrayList<Object> data, Schema schema) throws IOException {
         boolean validInput = checkData(data);
         if (!validInput) {
             System.out.println("Invalid input");
             return;
         }
-        int recordSize = writer.calculateBytes(data);
-        writer.writeRecordToFile(data, "database.txt", recordSize);
+
+        File db = new File("database.txt");
+        db.createNewFile();
+
+        ArrayList<ArrayList<Object>> allRecords = getAllRecords("database.txt", schema.getAttributes());
+
+        insertRecordInPage(allRecords, data, schema.getIndexOfPrimaryKey());
+
+        writer.writePageToFile(allRecords, "database.txt", schema);
     }
 }
