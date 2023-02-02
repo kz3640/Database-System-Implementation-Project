@@ -4,11 +4,13 @@ public class BICD implements SchemaAttribute{
     private String attributeName;
     private Character character;
     private boolean isPrimaryKey;
+    private boolean notNull;
 
-    public BICD(String attributeName, Character character, boolean isPrimaryKey) {
+    public BICD(String attributeName, Character character, boolean isPrimaryKey, boolean notNull) {
         this.attributeName = attributeName;
         this.character = character;
         this.isPrimaryKey = isPrimaryKey;
+        this.notNull = notNull;
     }
 
     public Class<?> getType() {
@@ -40,5 +42,9 @@ public class BICD implements SchemaAttribute{
 
     public String getAttributeName() {
         return this.attributeName;
+    }
+
+    public boolean isNotNull() {
+        return this.notNull;
     }
 }

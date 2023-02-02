@@ -19,7 +19,7 @@ public class StorageManager {
 
         // parse insert table command
         ArrayList<Object> catalog = writer.addDataToArray(input);
-        writer.writeToFile(catalog, "catalog.txt", null);
+        writer.writeSchemaToFile(catalog, "catalog.txt");
     }
 
     public boolean checkData(ArrayList<Object> data) {
@@ -29,6 +29,12 @@ public class StorageManager {
         }
 
         for (int index = 0; index < data.size(); index++) {
+            if (schema.get(index).isNotNull() && data.get(index) == null) {
+                return false;
+            }
+            if (!schema.get(index).isNotNull() && data.get(index) == null) {
+                continue;
+            }
             switch (schema.get(index).getLetter()) {
                 case 'i':
                     if (!(data.get(index) instanceof Integer)) {
@@ -63,49 +69,16 @@ public class StorageManager {
     }
 
     public ArrayList<ArrayList<Object>> getAllRecords(String fileName, ArrayList<SchemaAttribute> schema) {
-
-
-        ArrayList<ArrayList<Object>> dataList = new ArrayList<>();
-        try (DataInputStream dis = new DataInputStream(new FileInputStream(fileName))) {
-            while (true) {
-                ArrayList<Object> data = new ArrayList<>();
-                int dataLength = dis.readInt();
-                for (SchemaAttribute c : schema) {
-                    switch (c.getLetter()) {
-                        case 'i':
-                            data.add(dis.readInt());
-                            break;
-                        case 'b':
-                            data.add(dis.readBoolean());
-                            break;
-                        case 'c':
-                            data.add(dis.readChar());
-                            break;
-                        case 'v':
-                            data.add(dis.readUTF());
-                            break;
-                        case 'd':
-                            data.add(dis.readDouble());
-                            break;
-                    }
-                }
-                dataList.add(data);
-            }
-        } catch (java.io.EOFException e) {
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return dataList;
-       
+        return reader.getAllRecords(fileName, schema);
     }
 
     public void addRecord(ArrayList<Object> data) throws IOException {
         boolean validInput = checkData(data);
         if (!validInput) {
+            System.out.println("Invalid input");
             return;
         }
         int recordSize = writer.calculateBytes(data);
-        writer.writeToFile(data, "database.txt", recordSize);
+        writer.writeRecordToFile(data, "database.txt", recordSize);
     }
 }

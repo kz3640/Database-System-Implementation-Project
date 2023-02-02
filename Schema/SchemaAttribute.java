@@ -4,6 +4,8 @@ public interface SchemaAttribute {
 
     public int getLength();
 
+    public boolean isNotNull();
+
     public Character getLetter();
 
     public boolean isPrimaryKey();
