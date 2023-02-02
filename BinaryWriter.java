@@ -13,12 +13,25 @@ public class BinaryWriter {
         return;
     }
 
-    public void writeRecordToFile(ArrayList<Object> data, String fileName, Integer recordSize) throws IOException {
+    // read until end of tile
+    // need to change this to read until correct spot to insert
+    // while (true) {
+    // try {
+    // int prevRecordSize = dis.readInt();
+    // dis.skip(prevRecordSize);
+    // } catch (java.io.EOFException e) {
+    // break;
+    // }
+    // }
+
+    public void writeRecordToFile(ArrayList<Object> data, String fileName, DataOutputStream dos) throws IOException {
+
+        int recordSize = calculateBytes(data);
         int numBits = data.size();
         int numBytes = (int) Math.ceil(numBits / 8.0);
         byte[] nullBitMap = new byte[numBytes];
 
-        // null bit map. 
+        // null bit map.
         for (int i = 0; i < numBits; i++) {
             Object o = data.get(i);
             if (o == null) {
@@ -26,30 +39,27 @@ public class BinaryWriter {
             }
         }
 
-        try (DataOutputStream dos = new DataOutputStream(new FileOutputStream(fileName, true));
-                DataInputStream dis = new DataInputStream(new FileInputStream(fileName))) {
+        // write record size
+        dos.writeInt(recordSize);
 
-            // read until end of tile
-            // need to change this to read until correct spot to insert
-            while (true) {
-                try {
-                    int prevRecordSize = dis.readInt();
-                    dis.skip(prevRecordSize);
-                } catch (java.io.EOFException e) {
-                    break;
-                }
+        // write the null bit map
+        dos.write(nullBitMap);
+        for (Object o : data) {
+            if (o == null) {
+                continue;
+            } else {
+                writeDataType(o, fileName, dos);
             }
-            // write record size
-            dos.writeInt(recordSize);
-            
-            // write the null bit map
-            dos.write(nullBitMap);
-            for (Object o : data) {
-                if (o == null) {
-                    continue;
-                } else {
-                    writeDataType(o, fileName, dos);
-                }
+        }
+
+    }
+
+    public void writePageToFile(ArrayList<ArrayList<Object>> allRecords, String fileName, Schema schema)
+            throws IOException {
+        try (DataOutputStream dos = new DataOutputStream(new FileOutputStream(fileName, false))) {
+            // write page header information
+            for (ArrayList<Object> record : allRecords) {
+                writeRecordToFile(record, fileName, dos);
             }
         }
     }
