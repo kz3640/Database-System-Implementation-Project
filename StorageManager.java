@@ -69,7 +69,7 @@ public class StorageManager {
         return true;
     }
 
-    public ArrayList<ArrayList<Object>> getAllRecords(String fileName, ArrayList<SchemaAttribute> schema) {
+    public ArrayList<ArrayList<Object>> getAllRecords(String fileName, ArrayList<SchemaAttribute> schema) throws IOException {
         return reader.getAllRecords(fileName, schema);
     }
 
@@ -128,6 +128,8 @@ public class StorageManager {
 
         insertRecordInPage(allRecords, data, schema.getIndexOfPrimaryKey());
 
-        writer.writePageToFile(allRecords, "database.txt", schema);
+        // writes a specfic page to the db file
+        // writer.writePage(allRecords, "database.txt", schema, 2, 100);
+        writer.writeAll(allRecords, "database.txt", schema);
     }
 }

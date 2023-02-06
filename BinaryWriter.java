@@ -1,9 +1,13 @@
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
 
 import Schema.Schema;
 
@@ -24,7 +28,7 @@ public class BinaryWriter {
     // }
     // }
 
-    public void writeRecordToFile(ArrayList<Object> data, String fileName, DataOutputStream dos) throws IOException {
+    public void writeRecordToFile(ArrayList<Object> data, String fileName, RandomAccessFile raf) throws IOException {
 
         int recordSize = calculateBytes(data);
         int numBits = data.size();
@@ -40,50 +44,116 @@ public class BinaryWriter {
         }
 
         // write record size
-        dos.writeInt(recordSize);
+        raf.writeInt(recordSize);
 
         // write the null bit map
-        dos.write(nullBitMap);
+        raf.write(nullBitMap);
         for (Object o : data) {
             if (o == null) {
                 continue;
             } else {
-                writeDataType(o, fileName, dos);
+                writeDataType(o, fileName, raf);
             }
         }
-
     }
 
-    public void writePageToFile(ArrayList<ArrayList<Object>> allRecords, String fileName, Schema schema)
-            throws IOException {
+    public int calculatePageSize(ArrayList<ArrayList<Object>> allRecords) {
+        int totalSize = 0;
+        for (ArrayList<Object> record : allRecords) {
+            totalSize += calculateRecordSize(record);
+        }
+        totalSize += 4; // int id
+        totalSize += 4; // int junkSize
+        return totalSize;
+    }
+
+    public int calculateRecordSize(ArrayList<Object> data) {
+        return this.calculateBytes(data) + 4;
+    }
+
+    public int calculateJunkSpaceSize(ArrayList<ArrayList<Object>> allRecords, int pageSize) {
+        return pageSize - calculatePageSize(allRecords);
+    }
+
+    public void writePage(ArrayList<ArrayList<Object>> allRecords, String fileName, Schema schema, int pageNumber,
+            int pageSize) throws FileNotFoundException, IOException {
+
+        int segmentSize = 2;
+        int numSegments = (int) Math.ceil(allRecords.size() / (double) segmentSize);
+        ArrayList<ArrayList<ArrayList<Object>>> segments = new ArrayList<>();
+
+        for (int i = 0; i < numSegments; i++) {
+            int startIndex = i * segmentSize;
+            int endIndex = Math.min((i + 1) * segmentSize, allRecords.size());
+            ArrayList<ArrayList<Object>> segment = new ArrayList<>(allRecords.subList(startIndex, endIndex));
+            segments.add(segment);
+        }
+        int skipBytes = (pageNumber * pageSize) + 4;
+
+        RandomAccessFile raf = new RandomAccessFile(fileName, "rw");
+        raf.seek(skipBytes);
+
+        writePageToFile(raf, segments.get(0), fileName, schema);
+    }
+
+    public void writeAll(ArrayList<ArrayList<Object>> allRecords, String fileName, Schema schema) throws IOException {
+        int segmentSize = 2;
+        int numSegments = (int) Math.ceil(allRecords.size() / (double) segmentSize);
+        ArrayList<ArrayList<ArrayList<Object>>> segments = new ArrayList<>();
+
+        for (int i = 0; i < numSegments; i++) {
+            int startIndex = i * segmentSize;
+            int endIndex = Math.min((i + 1) * segmentSize, allRecords.size());
+            ArrayList<ArrayList<Object>> segment = new ArrayList<>(allRecords.subList(startIndex, endIndex));
+            segments.add(segment);
+        }
+
+        RandomAccessFile raf = new RandomAccessFile(fileName, "rw");
         try (DataOutputStream dos = new DataOutputStream(new FileOutputStream(fileName, false))) {
-            // write page header information
-            for (ArrayList<Object> record : allRecords) {
-                writeRecordToFile(record, fileName, dos);
+            raf.writeInt(numSegments);
+            for (ArrayList<ArrayList<Object>> segment : segments) {
+                writePageToFile(raf, segment, fileName, schema);
             }
         }
+    }
+
+    public void writePageToFile(RandomAccessFile raf, ArrayList<ArrayList<Object>> allRecords, String fileName,
+            Schema schema)
+            throws IOException {
+        int pageSize = 100;
+        int junkSpace = calculateJunkSpaceSize(allRecords, pageSize);
+        raf.writeInt(Integer.parseInt("1"));
+        raf.writeInt(junkSpace);
+        for (ArrayList<Object> record : allRecords) {
+            writeRecordToFile(record, fileName, raf);
+        }
+
+        byte[] junk = new byte[junkSpace];
+        raf.write(junk);
     }
 
     public void writeSchemaToFile(ArrayList<Object> data, String fileName) throws IOException {
-        try (DataOutputStream dos = new DataOutputStream(new FileOutputStream(fileName, true));
-                DataInputStream dis = new DataInputStream(new FileInputStream(fileName))) {
-            for (Object o : data) {
-                writeDataType(o, fileName, dos);
-            }
+        // try (DataOutputStream dos = new DataOutputStream(new
+        // FileOutputStream(fileName, true));
+        // DataInputStream dis = new DataInputStream(new FileInputStream(fileName))) {
+        RandomAccessFile raf = new RandomAccessFile(fileName, "rw");
+        for (Object o : data) {
+            writeDataType(o, fileName, raf);
         }
+        // }
     }
 
-    public void writeDataType(Object o, String fileName, DataOutputStream dos) throws IOException {
+    public void writeDataType(Object o, String fileName, RandomAccessFile raf) throws IOException {
         if (o instanceof Integer) {
-            dos.writeInt((Integer) o);
+            raf.writeInt((Integer) o);
         } else if (o instanceof Boolean) {
-            dos.writeBoolean((Boolean) o);
+            raf.writeBoolean((Boolean) o);
         } else if (o instanceof Character) {
-            dos.writeChar((Character) o);
+            raf.writeChar((Character) o);
         } else if (o instanceof String) {
-            dos.writeUTF((String) o);
+            raf.writeUTF((String) o);
         } else if (o instanceof Double) {
-            dos.writeDouble((Double) o);
+            raf.writeDouble((Double) o);
         }
     }
 
