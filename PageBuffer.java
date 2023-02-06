@@ -54,7 +54,13 @@ public class PageBuffer {
         }
         this.bWriter.writePage(this.page_buff.get(idx).allRecords, this.page_buff.get(idx).fileName, 
                                 this.page_buff.get(idx).schema, idx, this.page_size);
-        current_page_count -= 1;
+        this.current_page_count -= 1;
+    }
+
+    public void clearBuffer() throws IOException{
+        while (this.current_page_count != 0){
+            writeLRUPage();
+        }
     }
 
     /*
