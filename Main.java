@@ -19,25 +19,23 @@ public class Main {
         InputHandler inputHandler = new InputHandler(writer, reader, storageManager);
 
         // enter a command
-        // - "catalog" to display the available catalog of items
-        // - "read" followed by a file name to read data from a file
-        // - "display" to display the current data
-        // - "insert" to insert data
 
-        // The user can enter data in the format 'insert <value1> <value2> ... <valueN>', where each value can be one of:
-        // - int: an integer number
-        // - boolean: true or false
-        // - char: a single character, surrounded by single quotes (e.g. 'v')
-        // - string: a sequence of characters, surrounded by double quotes (e.g."mystring")
-        // - double: a decimal number
-        // For example, the user could enter 'insert 10 "mystring" true 48.9 "the" 'v''
-        // to insert the following values into the database:
-        // - 10 as an int
-        // - "mystring" as a String
-        // - true as a boolean
-        // - 48.9 as a double
-        // - "the" as a String
-        // - 'v' as a character
+
+        // * create (create table)
+        // ex. create tableName col1Name p i col2Name s col3Name d
+
+        // * insert (insert into table)
+        // ex. insert 1 mystring 10.0
+
+        // * select (select * from table)
+        // ex. select
+
+        // * catalog (shows schema)
+        // ex. catalog
+
+
+        // * delete (deletes db file)
+        // ex. delete
 
         while (!quit) {
             System.out.println("Enter command");

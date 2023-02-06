@@ -10,8 +10,8 @@ public class InputHandler {
     private BinaryWriter writer;
     private BinaryReader reader;
     private StorageManager storageManager;
-    
-    public InputHandler( BinaryWriter writer, BinaryReader reader, StorageManager storageManager) {
+
+    public InputHandler(BinaryWriter writer, BinaryReader reader, StorageManager storageManager) {
         this.writer = writer;
         this.reader = reader;
         this.storageManager = storageManager;
@@ -21,9 +21,19 @@ public class InputHandler {
     public void handleInput(String[] input) throws IOException {
 
         String[] newInput = Arrays.copyOfRange(input, 1, input.length);
-            
-        if (input[0].equals("catalog")) {
-            storageManager.createCatalog(newInput);
+
+        if (input[0].equals("page")) {
+            Schema schema = reader.getSchema("catalog.txt");
+            ArrayList<ArrayList<Object>> allRecords = reader.getPage("database.txt", Integer.parseInt(input[1]), schema);
+            for (ArrayList<Object> record : allRecords) {
+                System.out.print("\n record: " + allRecords.indexOf(record));
+                for (Object col : record) {
+                    System.out.print(" | ");
+                    System.out.print(col);
+                }
+                System.out.print("\n");
+            }
+            System.out.print("\n");
         }
         if (input[0].equals("create")) {
             storageManager.createCatalog(newInput);
@@ -33,7 +43,7 @@ public class InputHandler {
             Schema schema = reader.getSchema("catalog.txt");
             storageManager.addRecord(data, schema);
         }
-        if (input[0].equals("read")) {
+        if (input[0].equals("catalog")) {
             Schema schema = reader.getSchema("catalog.txt");
             schema.printTable();
         }
@@ -41,9 +51,9 @@ public class InputHandler {
             File myObj = new File("database.txt");
             myObj.delete();
         }
-        if (input[0].equals("display")) {
+        if (input[0].equals("select")) {
             ArrayList<SchemaAttribute> schema = reader.getSchema("catalog.txt").getAttributes();
-            ArrayList<ArrayList<Object>>  allRecords = storageManager.getAllRecords("database.txt", schema);
+            ArrayList<ArrayList<Object>> allRecords = storageManager.getAllRecords("database.txt", schema);
             for (ArrayList<Object> record : allRecords) {
                 System.out.print("\n record: " + allRecords.indexOf(record));
                 for (Object col : record) {
