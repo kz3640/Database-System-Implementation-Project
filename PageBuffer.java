@@ -1,15 +1,24 @@
+import java.io.IOException;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 
 public class PageBuffer {
 
     public ArrayList<Page> page_buff;
-    public int buffer_size;
-    public int current_size;
+    public int max_page_count;
+    public int current_page_count;
+    public int page_size;
+    public BinaryReader bReader;
+    public BinaryWriter bWriter;
 
-    public PageBuffer(int page_size, int buffer_size) {
+    public PageBuffer(int page_size, int max_page_count, BinaryReader bReader, BinaryWriter bWriter) {
         this.page_buff = new ArrayList<Page>();
-        this.buffer_size = buffer_size;
-        this.current_size = 0;
+        this.page_size = page_size;
+        this.max_page_count = max_page_count;
+        this.current_page_count = 0;
+        this.bReader = bReader;
+        this.bWriter = bWriter;
     }
 
 
@@ -18,29 +27,41 @@ public class PageBuffer {
      * @param page_id A placeholder identifier until we decide on how we want to id them.
      * @return A boolen representing if the page was found or not.
      */
-    public Boolean isPageInBuffer(int page_id) {
-        for(int i = 0; i < this.buffer_size; i++) {
-            if(this.page_buff.get(i).getID() == page_id) {
-                return true;
+    public Page getPage(int page_id) throws IOException{
+        for(int i = 0; i < this.current_page_count; i++) {
+            if(this.page_buff.get(i).getPageID() == page_id) {
+                return this.page_buff.get(i);
             }
         }
-        return false;
+
+        if (this.max_page_count <= this.current_page_count){
+            writeLRUPage();
+        }
+        this.current_page_count += 1;
+        return new Page(); // read page from BR here
+
     }
 
+
+    public void writeLRUPage()throws IOException{
+        Timestamp min_timestamp = page_buff.get(0).getTime();
+        int idx = 0;
+        for(int i = 1; i < this.current_page_count; i++) {
+            if(this.page_buff.get(i).getTime().before(min_timestamp)) {
+                idx = i;
+                min_timestamp = this.page_buff.get(i).getTime();
+            }
+        }
+        this.bWriter.writePage(this.page_buff.get(idx).allRecords, this.page_buff.get(idx).fileName, 
+                                this.page_buff.get(idx).schema, idx, this.page_size);
+        current_page_count -= 1;
+    }
 
     /*
      * @return A Page object from the buffer.
      */
-    public Page getPage() {
-        return new Page(0);
-    }
-
-
-    /*
-     * @return A boolean representing if the buffer has the maximum number of pages it can hold.
-     */
-    public Boolean isBufferFull() {
-        return current_size == buffer_size;
+    public Page getNewPage() {
+        return new Page();
     }
 
 }
