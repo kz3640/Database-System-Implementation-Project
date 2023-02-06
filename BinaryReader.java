@@ -102,6 +102,7 @@ public class BinaryReader {
         }
     }
 
+    // schema needs to be removed from parameters bec page doesnt have access to it
     public ArrayList<ArrayList<Object>> getPage(String fileName, int pageNumber, Schema schema) throws IOException {
         ArrayList<ArrayList<Object>> dataList = new ArrayList<>();
 

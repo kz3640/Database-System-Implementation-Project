@@ -1,5 +1,4 @@
 import java.io.IOException;
-import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 
@@ -38,8 +37,8 @@ public class PageBuffer {
             writeLRUPage();
         }
         this.current_page_count += 1;
-        return new Page(); // read page from BR here
-
+        // return this.bReader.readPage(this.page_id);;
+        return new Page(); // replace this with ^ once BinaryReader has been updated.
     }
 
 
@@ -52,8 +51,9 @@ public class PageBuffer {
                 min_timestamp = this.page_buff.get(i).getTime();
             }
         }
+        // this.bWriter.writePage(this.page_buff.get(idx));
         this.bWriter.writePage(this.page_buff.get(idx).allRecords, this.page_buff.get(idx).fileName, 
-                                this.page_buff.get(idx).schema, idx, this.page_size);
+                                this.page_buff.get(idx).schema, idx, this.page_size); // replace this with ^ once BW is updated
         this.current_page_count -= 1;
     }
 
