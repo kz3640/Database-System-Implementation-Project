@@ -1,6 +1,4 @@
-import java.io.DataInputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 
@@ -8,35 +6,74 @@ import Schema.Schema;
 import Schema.SchemaAttribute;
 
 public class StorageManager {
-    private BinaryWriter writer;
-    private BinaryReader reader;
+    private Schema schema;
+    public PageBuffer pageBuffer;
 
-    public StorageManager(BinaryWriter writer, BinaryReader reader) {
-        this.writer = writer;
-        this.reader = reader;
+    public StorageManager(PageBuffer pageBuffer, Schema schema) {
+        this.pageBuffer = pageBuffer;
+        this.schema = schema;
         return;
+    }
+
+    public Schema getSchema() {
+        return schema;
+    }
+
+    public ArrayList<Object> addDataToArray(String[] input) {
+        ArrayList<Object> data = new ArrayList<Object>();
+        for (String s : input) {
+            if (s.equals("null")) {
+                data.add(null);
+                continue;
+            }
+            try {
+                int i = Integer.parseInt(s);
+                data.add(i);
+            } catch (NumberFormatException e) {
+                String lowerString = s.toLowerCase();
+                if (lowerString.equals("true") || lowerString.equals("false")) {
+                    boolean b = Boolean.parseBoolean(s);
+                    data.add(b);
+                } else {
+                    try {
+                        double d = Double.parseDouble(s);
+                        data.add(d);
+                    } catch (NumberFormatException exx) {
+                        if (s.length() == 1) {
+                            data.add(s.charAt(0));
+                        } else {
+                            data.add(s);
+                        }
+                    }
+                }
+            }
+        }
+        return data;
     }
 
     public void createCatalog(String[] input) throws IOException {
         // parse insert table command
-        ArrayList<Object> catalog = writer.addDataToArray(input);
-        writer.writeSchemaToFile(catalog, "catalog.txt");
+        ArrayList<Object> catalog = addDataToArray(input);
+        catalog.add(0, this.schema.getPageSize());
+        pageBuffer.writeSchemaToFile(catalog);
+        this.schema = pageBuffer.getSchema();
     }
 
     public boolean checkData(ArrayList<Object> data) {
-        ArrayList<SchemaAttribute> schema = reader.getSchema("catalog.txt").getAttributes();
-        if (data.size() != schema.size()) {
+        ArrayList<SchemaAttribute> schemaAttributes = this.schema.getAttributes();
+
+        if (data.size() != schemaAttributes.size()) {
             return false;
         }
 
         for (int index = 0; index < data.size(); index++) {
-            if (schema.get(index).isNotNull() && data.get(index) == null) {
+            if (schemaAttributes.get(index).isNotNull() && data.get(index) == null) {
                 return false;
             }
-            if (!schema.get(index).isNotNull() && data.get(index) == null) {
+            if (!schemaAttributes.get(index).isNotNull() && data.get(index) == null) {
                 continue;
             }
-            switch (schema.get(index).getLetter()) {
+            switch (schemaAttributes.get(index).getLetter()) {
                 case 'i':
                     if (!(data.get(index) instanceof Integer)) {
                         return false;
@@ -69,67 +106,142 @@ public class StorageManager {
         return true;
     }
 
-    public ArrayList<ArrayList<Object>> getAllRecords(String fileName, ArrayList<SchemaAttribute> schema) throws IOException {
-        return reader.getAllRecords(fileName, schema);
-    }
+    public boolean insertRecordInPage(Page page, ArrayList<Object> data) throws IOException {
+        boolean shouldBeAdded = false;
+        int indexToBeAdded = 0;
 
-    public void insertRecordInPage(ArrayList<ArrayList<Object>> allRecords, ArrayList<Object> data,
-            int indexOfPrimaryKey) {
-        if (allRecords.size() == 0) {
-            allRecords.add(data);
-            return;
+        ArrayList<ArrayList<Object>> pageRecords = page.getRecords();
+        if (pageRecords.size() == 0) {
+            pageRecords.add(data);
+            return true;
         }
 
-        for (int i = 0; i < allRecords.size(); i++) {
-            ArrayList<Object> record = allRecords.get(i);
+        int indexOfPrimaryKey = this.schema.getIndexOfPrimaryKey();
+
+        for (int i = 0; i < pageRecords.size(); i++) {
+            ArrayList<Object> record = pageRecords.get(i);
             Object primaryKeyRecord = record.get(indexOfPrimaryKey);
             Object primaryKeyData = data.get(indexOfPrimaryKey);
             if (primaryKeyData instanceof Integer) {
                 if ((Integer) primaryKeyRecord > (Integer) primaryKeyData) {
-                    allRecords.add(i, data);
-                    return;
+                    System.out.println("index to add" + i);
+                    shouldBeAdded = true;
+                    indexToBeAdded = i;
+                    break;
                 }
             } else if (primaryKeyData instanceof Boolean) {
                 if (!((Boolean) primaryKeyRecord) && ((Boolean) primaryKeyData)) {
-                    allRecords.add(i, data);
-                    return;
+                    shouldBeAdded = true;
+                    indexToBeAdded = i;
+                    break;
                 }
             } else if (primaryKeyData instanceof Character) {
                 if ((Character) primaryKeyRecord > (Character) primaryKeyData) {
-                    allRecords.add(i, data);
-                    return;
+                    shouldBeAdded = true;
+                    indexToBeAdded = i;
+                    break;
                 }
             } else if (primaryKeyData instanceof String) {
                 if (((String) primaryKeyRecord).compareTo((String) primaryKeyData) > 0) {
-                    allRecords.add(i, data);
-                    return;
+                    shouldBeAdded = true;
+                    indexToBeAdded = i;
+                    break;
                 }
             } else if (primaryKeyData instanceof Double) {
                 if ((Double) primaryKeyRecord > (Double) primaryKeyData) {
-                    allRecords.add(i, data);
-                    return;
+                    shouldBeAdded = true;
+                    indexToBeAdded = i;
+                    break;
                 }
             }
         }
-        allRecords.add(data);
+
+        if (!shouldBeAdded) {
+            return false;
+        }
+
+        if (page.canRecordFitInPage(data)){
+            page.addRecord(indexToBeAdded, data);
+        } else {
+            page.addRecord(indexToBeAdded, data);
+            splitPage(page);
+        }
+
+        return true;
     }
 
-    public void addRecord(ArrayList<Object> data, Schema schema) throws IOException {
+    public void splitPage(Page page) throws IOException {
+        Page newPage = pageBuffer.insertNewPage(page.getPageID() + 1);
+
+        ArrayList<ArrayList<Object>> records = page.getRecords();
+        int splitIndex = records.size() / 2;
+        ArrayList<ArrayList<Object>> firstHalf = new ArrayList<>(records.subList(0, splitIndex));
+        ArrayList<ArrayList<Object>> secondHalf = new ArrayList<>(records.subList(splitIndex, records.size()));
+
+        page.setRecords(firstHalf);
+        newPage.setRecords(secondHalf);
+        pageBuffer.addPageToBuffer(newPage);   
+    }
+
+    public void addRecord(String[] input) throws IOException {
+        addRecord(addDataToArray(input));
+    }
+
+    public void addRecord(ArrayList<Object> data) throws IOException {
+
+        if (this.schema.getAttributes() == null) {
+            return;
+        }
+
+        // check to see if input is valid
         boolean validInput = checkData(data);
         if (!validInput) {
             System.out.println("Invalid input");
             return;
         }
 
-        File db = new File("database.txt");
+        // create new file if doesn't exist
+        File db = new File(this.schema.getPath() + "database.txt");
         db.createNewFile();
 
-        ArrayList<ArrayList<Object>> allRecords = getAllRecords("database.txt", schema.getAttributes());
+        int pageIndex = 0;
+        while (true) {
+            if (this.pageBuffer.getTotalPages() <= pageIndex)
+                pageBuffer.createNewPage();
 
-        insertRecordInPage(allRecords, data, schema.getIndexOfPrimaryKey());
+            Page page = this.pageBuffer.getPage(pageIndex);
 
-        // writes a specfic page to the db file
-        // writer.writePage(allRecords, "database.txt", schema, 2, 100);
-        writer.writeAll(allRecords, "database.txt", schema);
+            if (insertRecordInPage(page, data))
+                break;
+
+            pageIndex++;
+        }
+    }
+
+    public void printAllRecords() throws IOException {
+        int pageIndex = 0;
+        while (true) {
+
+            if (this.pageBuffer.getTotalPages() <= pageIndex)
+                break;
+
+            Page page = this.pageBuffer.getPage(pageIndex);
+
+            page.printPage();
+
+            pageIndex++;
+        }
+    }
+
+    public void writeBuffer() throws IOException {
+        pageBuffer.clearBuffer();
+    }
+
+    public void printDB() throws IOException {
+        pageBuffer.printDB();
+    }
+
+    public void printBuffer() {
+        pageBuffer.printBuffer();
     }
 }

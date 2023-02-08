@@ -22,47 +22,42 @@ public class InputHandler {
 
         String[] newInput = Arrays.copyOfRange(input, 1, input.length);
 
-        if (input[0].equals("page")) {
-            Schema schema = reader.getSchema("catalog.txt");
-            ArrayList<ArrayList<Object>> allRecords = reader.getPage("database.txt", Integer.parseInt(input[1]), schema);
-            for (ArrayList<Object> record : allRecords) {
-                System.out.print("\n record: " + allRecords.indexOf(record));
-                for (Object col : record) {
-                    System.out.print(" | ");
-                    System.out.print(col);
-                }
-                System.out.print("\n");
-            }
-            System.out.print("\n");
-        }
+        // create tableName colName p i colName d
         if (input[0].equals("create")) {
             storageManager.createCatalog(newInput);
         }
+
+        // insert 10 11.1
         if (input[0].equals("insert")) {
-            ArrayList<Object> data = writer.addDataToArray(newInput);
-            Schema schema = reader.getSchema("catalog.txt");
-            storageManager.addRecord(data, schema);
+            storageManager.addRecord(newInput);
         }
+
+        // catalog
         if (input[0].equals("catalog")) {
-            Schema schema = reader.getSchema("catalog.txt");
+            Schema schema = storageManager.getSchema();
             schema.printTable();
         }
-        if (input[0].equals("delete")) {
-            File myObj = new File("database.txt");
-            myObj.delete();
-        }
+
+        // select
         if (input[0].equals("select")) {
-            ArrayList<SchemaAttribute> schema = reader.getSchema("catalog.txt").getAttributes();
-            ArrayList<ArrayList<Object>> allRecords = storageManager.getAllRecords("database.txt", schema);
-            for (ArrayList<Object> record : allRecords) {
-                System.out.print("\n record: " + allRecords.indexOf(record));
-                for (Object col : record) {
-                    System.out.print(" | ");
-                    System.out.print(col);
-                }
-                System.out.print("\n");
-            }
-            System.out.print("\n");
+            storageManager.printAllRecords();
+        }
+        // write
+        if (input[0].equals("write")) {
+            storageManager.writeBuffer();
+        }
+        
+        // only for testing
+        if (input[0].equals("delete")) {
+            File myObj = new File(storageManager.getSchema().getPath() + "database.txt");
+            myObj.delete();
+            storageManager.pageBuffer.initDB();
+        }
+        if (input[0].equals("db")) {
+            storageManager.printDB();
+        }
+        if (input[0].equals("buf")) {
+            storageManager.printBuffer();
         }
     }
 }

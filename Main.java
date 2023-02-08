@@ -1,81 +1,63 @@
+import java.io.File;
 import java.io.IOException;
 import java.util.Scanner;
 
-public class Main {
-    public static void main(String[] args) throws IOException {
-        // if (args.length != 3) {
-        // System.out.println("Expected 3 arguments, got " + args.length);
-        // return;
-        // }
-        // String path = args[0];
-        // int page_size = Integer.parseInt(args[1]);
-        // int buffer_size = Integer.parseInt(args[2]);
-        boolean quit = false;
-        Scanner scan = new Scanner(System.in);
+import Schema.Schema;
 
-        BinaryWriter writer = new BinaryWriter();
-        BinaryReader reader = new BinaryReader();
-        StorageManager storageManager = new StorageManager(writer, reader);
+public class Main {
+
+    public static void main(String[] args) throws IOException {
+        if (args.length != 3) {
+            System.out.println("Expected 3 arguments, got " + args.length);
+            return;
+        }
+
+        if (!args[0].substring(args[0].length() - 1).equals("/")) {
+            System.out.println("First arg must be a full path");
+            return;
+        }
+
+        String path = null;
+        int pageSize = 0;
+        int bufferSize = 0;
+        try {
+            path = args[0];
+            pageSize = Integer.parseInt(args[1]);
+            bufferSize = Integer.parseInt(args[2]);
+        } catch (Exception _e) {
+            System.out.println("Unexpected program parameters");
+            System.exit(0);
+        }
+        File file = new File(path);
+
+        Schema schema = new Schema(null, path, pageSize, null);
+
+        BinaryReader reader = new BinaryReader(schema);
+        BinaryWriter writer = new BinaryWriter(schema);
+        PageBuffer pageBuffer = new PageBuffer(pageSize, bufferSize, reader, writer);
+        StorageManager storageManager = new StorageManager(pageBuffer, schema);
         InputHandler inputHandler = new InputHandler(writer, reader, storageManager);
 
-        // enter a command
+        if (file.exists() && file.isDirectory()) {
+            if (new File(path + "catalog.txt").exists()) {
+                schema = reader.getSchema();
+            }
+        } else {
+            file.mkdirs();
+        }
 
+        if (!new File(path + "database.txt").exists()) {
+            pageBuffer.initDB();
+        }
 
-        // * create (create table)
-        // ex. create tableName col1Name p i col2Name s col3Name d
-
-        // * insert (insert into table)
-        // ex. insert 1 mystring 10.0
-
-        // * select (select * from table)
-        // ex. select
-
-        // * catalog (shows schema)
-        // ex. catalog
-
-
-        // * delete (deletes db file)
-        // ex. delete
-
-        while (!quit) {
+        Scanner scan = new Scanner(System.in);
+        while (true) {
             System.out.println("Enter command");
             String[] input = scan.nextLine().split(" ");
+            if (input[0].equals("quit"))
+                break;
             inputHandler.handleInput(input);
         }
         scan.close();
     }
-
-    // 4.2 create catalog
-    // user input
-    // calls write data
-
-    // 4.3 storage manager
-    // What actually gets the data
-    // calls read data
-    // NOT THE SQL Parser
-
-    // 4.3.1 Insert
-    // read rules on how to insert
-
-    // 4.4 Page buffer
-    // Where information is stored
-    // storage manager will interact with this
-
-    // 5 Query processor
-    // works with storage manager
-
-    // 5.1 Create table
-    // creates schema/catalog
-
-    // 5.2 Select
-    // display table
-
-    // 5.3 Insert
-    // Insert into table
-
-    // 5.4 Disply schema
-    // Display catalog
-
-    // 5.5 Display info
-    // display table information
 }

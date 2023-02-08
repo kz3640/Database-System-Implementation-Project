@@ -1,73 +1,135 @@
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 
+import Schema.Schema;
+
 public class PageBuffer {
 
-    public ArrayList<Page> page_buff;
-    public int max_page_count;
-    public int current_page_count;
-    public int page_size;
-    public BinaryReader bReader;
-    public BinaryWriter bWriter;
+    public ArrayList<Page> pageBuffer;
+    public int maxBufferSize; // how many pages there are in the db
+    public int currentBufferSize;
+    public int pageSize;
+    public BinaryReader reader;
+    public BinaryWriter writer;
 
-    public PageBuffer(int page_size, int max_page_count, BinaryReader bReader, BinaryWriter bWriter) {
-        this.page_buff = new ArrayList<Page>();
-        this.page_size = page_size;
-        this.max_page_count = max_page_count;
-        this.current_page_count = 0;
-        this.bReader = bReader;
-        this.bWriter = bWriter;
+    public PageBuffer(int pageSize, int maxBufferSize, BinaryReader reader, BinaryWriter writer) {
+        this.pageBuffer = new ArrayList<Page>();
+        this.pageSize = pageSize;
+        this.maxBufferSize = maxBufferSize;
+        this.currentBufferSize = 0;
+        this.reader = reader;
+        this.writer = writer;
     }
 
+    public Page createNewPage() throws FileNotFoundException, IOException {
+        int newPageIndex = this.getTotalPages();
+        Page newPage = new Page(newPageIndex, new ArrayList<>(), this.getSchema());
+        writer.writePage(newPage);
+        return this.getPage(newPageIndex);
+    }
 
     /*
-     * Itterates through each page and does a check to see if the page we're looking for is in the buffer.
-     * @param page_id A placeholder identifier until we decide on how we want to id them.
+     * Itterates through each page and does a check to see if the page we're looking
+     * for is in the buffer.
+     * 
+     * @param pageId A placeholder identifier until we decide on how we want to id
+     * them.
+     * 
      * @return A boolen representing if the page was found or not.
      */
-    public Page getPage(int page_id) throws IOException{
-        for(int i = 0; i < this.current_page_count; i++) {
-            if(this.page_buff.get(i).getPageID() == page_id) {
-                return this.page_buff.get(i);
+    public Page getPage(int pageId) throws IOException {
+        for (int i = 0; i < this.currentBufferSize; i++) {
+            if (this.pageBuffer.get(i).getPageID() == pageId) {
+                return this.pageBuffer.get(i);
             }
         }
 
-        if (this.max_page_count <= this.current_page_count){
+        Page page = this.reader.getPage(pageId);
+        if (page == null)
+            return null;
+
+        this.pageBuffer.add(page);
+        this.currentBufferSize += 1;
+
+        if (this.maxBufferSize <= this.currentBufferSize) {
             writeLRUPage();
         }
-        this.current_page_count += 1;
-        // return this.bReader.readPage(this.page_id);;
-        return new Page(); // replace this with ^ once BinaryReader has been updated.
+
+        return page;
     }
 
+    public void addPageToBuffer(Page page) throws IOException {
+        this.pageBuffer.add(page);
+        this.currentBufferSize += 1;
 
-    public void writeLRUPage()throws IOException{
-        Timestamp min_timestamp = page_buff.get(0).getTime();
+        if (this.maxBufferSize <= this.currentBufferSize) {
+            writeLRUPage();
+        }
+    }
+
+    public void writeLRUPage() throws IOException {
+        Timestamp minTimestamp = pageBuffer.get(0).getTime();
         int idx = 0;
-        for(int i = 1; i < this.current_page_count; i++) {
-            if(this.page_buff.get(i).getTime().before(min_timestamp)) {
+        for (int i = 1; i < this.currentBufferSize; i++) {
+            if (this.pageBuffer.get(i).getTime().before(minTimestamp)) {
                 idx = i;
-                min_timestamp = this.page_buff.get(i).getTime();
+                minTimestamp = this.pageBuffer.get(i).getTime();
             }
         }
-        // this.bWriter.writePage(this.page_buff.get(idx));
-        this.bWriter.writePage(this.page_buff.get(idx).allRecords, this.page_buff.get(idx).fileName, 
-                                this.page_buff.get(idx).schema, idx, this.page_size); // replace this with ^ once BW is updated
-        this.current_page_count -= 1;
+
+        Page removedPage = this.pageBuffer.remove(idx);
+        this.writer.writePage(removedPage); // replace this with ^ once BW is updated
+        this.currentBufferSize -= 1;
     }
 
-    public void clearBuffer() throws IOException{
-        while (this.current_page_count != 0){
+    public void clearBuffer() throws IOException {
+        while (this.currentBufferSize != 0) {
             writeLRUPage();
         }
     }
 
-    /*
-     * @return A Page object from the buffer.
-     */
-    public Page getNewPage() {
-        return new Page();
+    public Page insertNewPage(int pageIndex) throws IOException {
+        // get new page from writer and shift bytes
+        Page newPage = new Page(pageIndex, new ArrayList<>(), getSchema());
+        writer.insertNewPage(newPage);
+        updateBufferPagesID(pageIndex);
+        return newPage;
     }
 
+    public void updateBufferPagesID(int pageIndex) {
+        for (Page page : pageBuffer) {
+            if (page.getPageID() >= pageIndex) {
+                page.incrementPageID();
+            }
+        }
+    }
+
+    public void writeSchemaToFile(ArrayList<Object> schema) throws IOException {
+        this.writer.writeSchemaToFile(schema);
+    }
+
+    public Schema getSchema() {
+        return this.reader.getSchema();
+    }
+
+    public void initDB() throws IOException {
+        writer.initDB();
+    }
+
+    public int getTotalPages() throws IOException {
+        return writer.getTotalPages();
+    }
+
+    public void printBuffer() {
+        System.out.println("PAGE BUFFER");
+        for (Page page : pageBuffer) {
+            page.printPage();
+        }
+    }
+
+    public void printDB() throws IOException {
+        reader.printDB();
+    }
 }
