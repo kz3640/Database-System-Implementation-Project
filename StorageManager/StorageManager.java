@@ -1,7 +1,15 @@
+package StorageManager;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 
+import Buffer.PageBuffer;
+import Buffer.Page;
+import Record.Record;
+import Record.RecordAttribute;
+import Schema.BICD;
+import Schema.Char;
 import Schema.Schema;
 import Schema.SchemaAttribute;
 
@@ -59,43 +67,44 @@ public class StorageManager {
         this.schema = pageBuffer.getSchema();
     }
 
-    public boolean checkData(ArrayList<Object> data) {
+    public boolean checkData(Record record) {
         ArrayList<SchemaAttribute> schemaAttributes = this.schema.getAttributes();
 
-        if (data.size() != schemaAttributes.size()) {
+        ArrayList<RecordAttribute> recordAttributes = record.getData();
+        if (recordAttributes.size() != schemaAttributes.size()) {
             return false;
         }
 
-        for (int index = 0; index < data.size(); index++) {
-            if (schemaAttributes.get(index).isNotNull() && data.get(index) == null) {
+        for (int index = 0; index < recordAttributes.size(); index++) {
+            if (schemaAttributes.get(index).isNotNull() && recordAttributes.get(index) == null) {
                 return false;
             }
-            if (!schemaAttributes.get(index).isNotNull() && data.get(index) == null) {
+            if (!schemaAttributes.get(index).isNotNull() && recordAttributes.get(index) == null) {
                 continue;
             }
             switch (schemaAttributes.get(index).getLetter()) {
                 case 'i':
-                    if (!(data.get(index) instanceof Integer)) {
+                    if (!(recordAttributes.get(index).getType() == int.class)) {
                         return false;
                     }
                     break;
                 case 'v':
-                    if (!(data.get(index) instanceof String)) {
+                    if (!(recordAttributes.get(index).getType() == String.class)) {
                         return false;
                     }
                     break;
                 case 'c':
-                    if (!(data.get(index) instanceof Character)) {
+                    if (!(recordAttributes.get(index).getType() == Character.class)) {
                         return false;
                     }
                     break;
                 case 'd':
-                    if (!(data.get(index) instanceof Double)) {
+                    if (!(recordAttributes.get(index).getType() == double.class)) {
                         return false;
                     }
                     break;
                 case 'b':
-                    if (!(data.get(index) instanceof Boolean)) {
+                    if (!(recordAttributes.get(index).getType() == boolean.class)) {
                         return false;
                     }
                     break;
@@ -106,49 +115,42 @@ public class StorageManager {
         return true;
     }
 
-    public boolean insertRecordInPage(Page page, ArrayList<Object> data) throws IOException {
+    public boolean insertRecordInPage(Page page, Record record) throws IOException {
         boolean shouldBeAdded = false;
         int indexToBeAdded = 0;
 
-        ArrayList<ArrayList<Object>> pageRecords = page.getRecords();
+        ArrayList<Record> pageRecords = page.getRecords();
         if (pageRecords.size() == 0) {
-            pageRecords.add(data);
+            pageRecords.add(record);
             return true;
         }
 
         int indexOfPrimaryKey = this.schema.getIndexOfPrimaryKey();
 
         for (int i = 0; i < pageRecords.size(); i++) {
-            ArrayList<Object> record = pageRecords.get(i);
-            Object primaryKeyRecord = record.get(indexOfPrimaryKey);
-            Object primaryKeyData = data.get(indexOfPrimaryKey);
-            if (primaryKeyData instanceof Integer) {
-                if ((Integer) primaryKeyRecord > (Integer) primaryKeyData) {
-                    System.out.println("index to add" + i);
+            Record recordInPage = pageRecords.get(i);
+            RecordAttribute primaryKeyRecord = recordInPage.getData().get(indexOfPrimaryKey);
+            RecordAttribute primaryKeyData = record.getData().get(indexOfPrimaryKey);
+            if (primaryKeyData.getType() == int.class) {
+                if ((Integer) primaryKeyRecord.getAttribute() > (Integer) primaryKeyData.getAttribute()) {
                     shouldBeAdded = true;
                     indexToBeAdded = i;
                     break;
                 }
-            } else if (primaryKeyData instanceof Boolean) {
-                if (!((Boolean) primaryKeyRecord) && ((Boolean) primaryKeyData)) {
+            } else if (primaryKeyData.getType() == boolean.class) {
+                if (!((Boolean) primaryKeyRecord.getAttribute()) && ((Boolean) primaryKeyData.getAttribute())) {
                     shouldBeAdded = true;
                     indexToBeAdded = i;
                     break;
                 }
-            } else if (primaryKeyData instanceof Character) {
-                if ((Character) primaryKeyRecord > (Character) primaryKeyData) {
+            } else if (primaryKeyData.getType() == Character.class || primaryKeyData.getType() == String.class) {
+                if ((Character) primaryKeyRecord.getAttribute() > (Character) primaryKeyData.getAttribute()) {
                     shouldBeAdded = true;
                     indexToBeAdded = i;
                     break;
                 }
-            } else if (primaryKeyData instanceof String) {
-                if (((String) primaryKeyRecord).compareTo((String) primaryKeyData) > 0) {
-                    shouldBeAdded = true;
-                    indexToBeAdded = i;
-                    break;
-                }
-            } else if (primaryKeyData instanceof Double) {
-                if ((Double) primaryKeyRecord > (Double) primaryKeyData) {
+            } else if (primaryKeyData.getType() == Double.class) {
+                if ((Double) primaryKeyRecord.getAttribute() > (Double) primaryKeyData.getAttribute()) {
                     shouldBeAdded = true;
                     indexToBeAdded = i;
                     break;
@@ -160,10 +162,10 @@ public class StorageManager {
             return false;
         }
 
-        if (page.canRecordFitInPage(data)){
-            page.addRecord(indexToBeAdded, data);
+        if (page.canRecordFitInPage(record)) {
+            page.addRecord(indexToBeAdded, record);
         } else {
-            page.addRecord(indexToBeAdded, data);
+            page.addRecord(indexToBeAdded, record);
             splitPage(page);
         }
 
@@ -173,28 +175,68 @@ public class StorageManager {
     public void splitPage(Page page) throws IOException {
         Page newPage = pageBuffer.insertNewPage(page.getPageID() + 1);
 
-        ArrayList<ArrayList<Object>> records = page.getRecords();
+        ArrayList<Record> records = page.getRecords();
         int splitIndex = records.size() / 2;
-        ArrayList<ArrayList<Object>> firstHalf = new ArrayList<>(records.subList(0, splitIndex));
-        ArrayList<ArrayList<Object>> secondHalf = new ArrayList<>(records.subList(splitIndex, records.size()));
+        ArrayList<Record> firstHalf = new ArrayList<>(records.subList(0, splitIndex));
+        ArrayList<Record> secondHalf = new ArrayList<>(records.subList(splitIndex, records.size()));
 
         page.setRecords(firstHalf);
         newPage.setRecords(secondHalf);
-        pageBuffer.addPageToBuffer(newPage);   
+        pageBuffer.addPageToBuffer(newPage);
+    }
+
+    public Record stringToRecord(String[] input) {
+        ArrayList<RecordAttribute> recordData = new ArrayList<RecordAttribute>();
+        int index = 0;
+        for (String s : input) {
+            if (s.equals("null")) {
+                recordData.add(new RecordAttribute(null, null, 0));
+                index++;
+                continue;
+            }
+            try {
+                int i = Integer.parseInt(s);
+                recordData.add(new RecordAttribute(int.class, i, 0));
+            } catch (NumberFormatException e) {
+                String lowerString = s.toLowerCase();
+                if (lowerString.equals("true") || lowerString.equals("false")) {
+                    boolean b = Boolean.parseBoolean(s);
+                    recordData.add(new RecordAttribute(boolean.class, b, 0));
+                } else {
+                    try {
+                        double d = Double.parseDouble(s);
+                        recordData.add(new RecordAttribute(double.class, d, 0));
+                    } catch (NumberFormatException exx) {
+                        if (schema.getAttributes().get(index).getLetter() == 'c') {
+                            int charLength = this.schema.getAttributes().get(index).getLength();
+                            recordData.add(new RecordAttribute(Character.class, s, charLength));
+                        } else if (schema.getAttributes().get(index).getLetter() == 'v') {
+                            recordData.add(new RecordAttribute(String.class, s, 0));
+                        }
+                    }
+                }
+            }
+            index++;
+        }
+
+
+        Record r = new Record(recordData);
+
+        return r;
     }
 
     public void addRecord(String[] input) throws IOException {
-        addRecord(addDataToArray(input));
+        addRecord(stringToRecord(input));
     }
 
-    public void addRecord(ArrayList<Object> data) throws IOException {
+    public void addRecord(Record record) throws IOException {
 
         if (this.schema.getAttributes() == null) {
             return;
         }
 
         // check to see if input is valid
-        boolean validInput = checkData(data);
+        boolean validInput = checkData(record);
         if (!validInput) {
             System.out.println("Invalid input");
             return;
@@ -211,7 +253,7 @@ public class StorageManager {
 
             Page page = this.pageBuffer.getPage(pageIndex);
 
-            if (insertRecordInPage(page, data))
+            if (insertRecordInPage(page, record))
                 break;
 
             pageIndex++;

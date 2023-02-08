@@ -1,8 +1,12 @@
+package Buffer;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 
+import Buffer.Page;
+import IO.BinaryWriter;
+import IO.BinaryReader;
 import Schema.Schema;
 
 public class PageBuffer {
@@ -64,7 +68,7 @@ public class PageBuffer {
         this.pageBuffer.add(page);
         this.currentBufferSize += 1;
 
-        if (this.maxBufferSize <= this.currentBufferSize) {
+        if (this.maxBufferSize < this.currentBufferSize) {
             writeLRUPage();
         }
     }

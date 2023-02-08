@@ -1,10 +1,16 @@
+package IO;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
 
+import Buffer.Page;
+import Record.Record;
+import Record.RecordAttribute;
 import Schema.Schema;
+import Util.Util;
 
 public class BinaryWriter {
     private Schema schema;
@@ -14,16 +20,18 @@ public class BinaryWriter {
         return;
     }
 
-    public void writeRecordToFile(ArrayList<Object> data, RandomAccessFile raf) throws IOException {
+    public void writeRecordToFile(Record record, RandomAccessFile raf) throws IOException {
         String fileName = this.schema.getPath() + "database.txt";
-        int recordSize = Util.calculateBytes(data);
-        int numBits = data.size();
+        
+        int recordSize = record.calculateBytes();
+        ArrayList<RecordAttribute> recordData = record.getData();
+        int numBits = recordData.size();
         int numBytes = (int) Math.ceil(numBits / 8.0);
         byte[] nullBitMap = new byte[numBytes];
 
         // null bit map.
         for (int i = 0; i < numBits; i++) {
-            Object o = data.get(i);
+            Object o = recordData.get(i);
             if (o == null) {
                 nullBitMap[i / 8] |= (1 << (i % 8));
             }
@@ -34,11 +42,12 @@ public class BinaryWriter {
 
         // write the null bit map
         raf.write(nullBitMap);
-        for (Object o : data) {
-            if (o == null) {
+
+        for (RecordAttribute attribute : recordData) {
+            if (attribute == null) {
                 continue;
             } else {
-                writeDataType(o, fileName, raf);
+                writeDataType(attribute, fileName, raf);
             }
         }
     }
@@ -122,10 +131,10 @@ public class BinaryWriter {
 
         raf.seek(skipBytes);
 
-        int junkSpace = Util.calculateJunkSpaceSize(page.getRecords(), this.schema.getPageSize());
+        int junkSpace = Util.calculateJunkSpaceSize(page, this.schema.getPageSize());
         raf.writeInt(page.getPageID());
         raf.writeInt(junkSpace);
-        for (ArrayList<Object> record : page.getRecords()) {
+        for (Record record : page.getRecords()) {
             writeRecordToFile(record, raf);
         }
 
@@ -137,11 +146,11 @@ public class BinaryWriter {
         String fileName = this.schema.getPath() + "catalog.txt";
         RandomAccessFile raf = new RandomAccessFile(fileName, "rw");
         for (Object o : data) {
-            writeDataType(o, fileName, raf);
+            writeSchemaDataType(o, fileName, raf);
         }
     }
 
-    public void writeDataType(Object o, String fileName, RandomAccessFile raf) throws IOException {
+    public void writeSchemaDataType(Object o, String fileName, RandomAccessFile raf) throws IOException {
         if (o instanceof Integer) {
             raf.writeInt((Integer) o);
         } else if (o instanceof Boolean) {
@@ -152,6 +161,26 @@ public class BinaryWriter {
             raf.writeUTF((String) o);
         } else if (o instanceof Double) {
             raf.writeDouble((Double) o);
+        }
+    }
+
+    public void writeDataType(RecordAttribute attribute, String fileName, RandomAccessFile raf) throws IOException {
+        if (attribute.getType() == int.class) {
+            raf.writeInt((Integer) attribute.getAttribute());
+        } else if (attribute.getType() == boolean.class) {
+            raf.writeBoolean((Boolean) attribute.getAttribute());
+        } else if (attribute.getType() == Character.class) {
+            int charsToAdd = attribute.getCharLength() - ((String) attribute.getAttribute()).length();
+            StringBuilder sb = new StringBuilder((String) attribute.getAttribute());
+            for (int i = 0; i < charsToAdd; i++) {
+                sb.append("-");
+            }
+            raf.writeUTF(sb.toString());
+            raf.writeInt(charsToAdd);
+        } else if (attribute.getType() == String.class) {
+            raf.writeUTF((String) attribute.getAttribute());
+        } else if (attribute.getType() == double.class) {
+            raf.writeDouble((Double) attribute.getAttribute());
         }
     }
 }

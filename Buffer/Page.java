@@ -1,32 +1,35 @@
+package Buffer;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
 
 import Schema.Schema;
+import Record.Record;
+import Util.Util;
 
 public class Page {
-    ArrayList<ArrayList<Object>> records;
+    ArrayList<Record> records;
 
     // This is what the PageBuffer needs
     private int pageId;
     private Schema schema;
     public Timestamp timestamp;
 
-    public Page(int pageId, ArrayList<ArrayList<Object>> records, Schema schema) {
+    public Page(int pageId, ArrayList<Record> records, Schema schema) {
         this.records = records;
         this.schema = schema;
         this.pageId = pageId;
         this.timestamp = Timestamp.from(Instant.now());
     }
 
-    public void setRecords(ArrayList<ArrayList<Object>> records) {
+    public void setRecords(ArrayList<Record> records) {
         this.records = records;
         this.timestamp = Timestamp.from(Instant.now());
 
     }
 
-    public void addRecord(int indexToBeAdded, ArrayList<Object> data) {
-        this.records.add(indexToBeAdded, data);
+    public void addRecord(int indexToBeAdded, Record record) {
+        this.records.add(indexToBeAdded, record);
         this.timestamp = Timestamp.from(Instant.now());
     }
 
@@ -42,7 +45,7 @@ public class Page {
         return this.timestamp;
     }
 
-    public ArrayList<ArrayList<Object>> getRecords() {
+    public ArrayList<Record> getRecords() {
         return records;
     }
 
@@ -51,11 +54,11 @@ public class Page {
     }
 
     public int getFreeSpace() {
-        return Util.calculateJunkSpaceSize(records, this.schema.getPageSize());
+        return Util.calculateJunkSpaceSize(this, this.schema.getPageSize());
     }
 
-    public boolean canRecordFitInPage(ArrayList<Object> record) {
-        return getFreeSpace() - Util.calculateRecordSize(record) >= 0;
+    public boolean canRecordFitInPage(Record record) {
+        return getFreeSpace() - record.calculateRecordSize() >= 0;
     }
 
     public void printPage() {
@@ -65,12 +68,9 @@ public class Page {
         if (this.records.size() == 0) {
             System.out.println("\n page contains no records");
         }
-        for (ArrayList<Object> record : this.records) {
+        for (Record record : this.records) {
             System.out.print("\n record: " + indexOfRecord);
-            for (Object col : record) {
-                System.out.print(" | ");
-                System.out.print(col);
-            }
+            record.printRecord();
             indexOfRecord++;
         }
         System.out.print("\n");

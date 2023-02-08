@@ -1,13 +1,19 @@
+package IO;
+
 import java.io.DataInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
 
+import Buffer.Page;
 import Schema.BICD;
+import Schema.Char;
 import Schema.Schema;
 import Schema.SchemaAttribute;
 import Schema.Varchar;
+import Record.Record;
+import Record.RecordAttribute;
 
 public class BinaryReader {
     private Schema schema;
@@ -42,6 +48,9 @@ public class BinaryReader {
                 if (resultChar == 'v') {
                     int stringLength = dis.readInt();
                     attributes.add(new Varchar(attrName, stringLength, isPrimary, false));
+                } else if (resultChar == 'c') {
+                    int stringLength = dis.readInt();
+                    attributes.add(new Char(attrName, stringLength, isPrimary, false));
                 } else {
                     attributes.add(new BICD(attrName, resultChar, isPrimary, false));
                 }
@@ -59,10 +68,10 @@ public class BinaryReader {
         long positionBefore = raf.getFilePointer();
 
         ArrayList<SchemaAttribute> schemaAttributes = this.schema.getAttributes();
-        ArrayList<ArrayList<Object>> dataList = new ArrayList<ArrayList<Object>>();
+        ArrayList<Record> dataList = new ArrayList<Record>();
 
         while (raf.getFilePointer() - positionBefore != bytesToRead) {
-            ArrayList<Object> data = new ArrayList<>();
+            Record newRecord = new Record(new ArrayList<>());
             int dataLength = raf.readInt();
             // needed later
 
@@ -75,30 +84,34 @@ public class BinaryReader {
             // read null bit map here.
             for (SchemaAttribute c : schemaAttributes) {
                 if ((nullBitMap[bitIndex / 8] & (1 << (bitIndex % 8))) != 0) {
-                    data.add(null);
+                    newRecord.addAttributeToData(null);
                     bitIndex++;
                     continue;
                 }
                 switch (c.getLetter()) {
                     case 'i':
-                        data.add(raf.readInt());
+                        newRecord.addAttributeToData(new RecordAttribute(int.class, raf.readInt(), 0));
                         break;
                     case 'b':
-                        data.add(raf.readBoolean());
+                        newRecord.addAttributeToData(new RecordAttribute(boolean.class, raf.readBoolean(), 0));
                         break;
                     case 'c':
-                        data.add(raf.readChar());
+                        String charString = raf.readUTF();
+                        int charsToStrip = raf.readInt();
+                        charString = charString.substring(0, charString.length() - charsToStrip);
+                        newRecord.addAttributeToData(
+                                new RecordAttribute(Character.class, charString, charString.length()));
                         break;
                     case 'v':
-                        data.add(raf.readUTF());
+                        newRecord.addAttributeToData(new RecordAttribute(String.class, raf.readUTF(), 0));
                         break;
                     case 'd':
-                        data.add(raf.readDouble());
+                        newRecord.addAttributeToData(new RecordAttribute(double.class, raf.readDouble(), 0));
                         break;
                 }
                 bitIndex++;
             }
-            dataList.add(data);
+            dataList.add(newRecord);
         }
 
         return new Page(pageId, dataList, this.schema);
