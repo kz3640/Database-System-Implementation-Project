@@ -1,8 +1,12 @@
+package InputHandler;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import IO.BinaryWriter;
+import IO.BinaryReader;
+import StorageManager.StorageManager;
 import Schema.Schema;
 import Schema.SchemaAttribute;
 

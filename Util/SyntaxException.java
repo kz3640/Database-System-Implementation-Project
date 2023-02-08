@@ -1,3 +1,4 @@
+package Util;
 public class SyntaxException extends Exception {
     final String token;
     final String usage;

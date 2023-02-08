@@ -21,8 +21,6 @@ public class BICD implements SchemaAttribute{
                 return int.class;
             case 'd':
                 return double.class;
-            case 'c':
-                return char.class;
             default:
                 return null;
         }
