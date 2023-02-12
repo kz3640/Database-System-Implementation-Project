@@ -11,6 +11,7 @@ public class RecordAttribute {
         this.charLength = charLength;
     }
 
+    // for char(x), get x
     public int getCharLength() {
         return charLength;
     }

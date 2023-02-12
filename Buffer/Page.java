@@ -10,10 +10,9 @@ import Util.Util;
 public class Page {
     ArrayList<Record> records;
 
-    // This is what the PageBuffer needs
     private int pageId;
     private Schema schema;
-    public Timestamp timestamp;
+    private Timestamp timestamp;
 
     public Page(int pageId, ArrayList<Record> records, Schema schema) {
         this.records = records;
@@ -28,6 +27,7 @@ public class Page {
 
     }
 
+    // adds record to record list
     public void addRecord(int indexToBeAdded, Record record) {
         this.records.add(indexToBeAdded, record);
         this.timestamp = Timestamp.from(Instant.now());
@@ -53,14 +53,17 @@ public class Page {
         this.pageId++;
     }
 
+    // calculate how much free space exists after all of the records
     public int getFreeSpace() {
         return Util.calculateJunkSpaceSize(this, this.schema.getPageSize());
     }
 
+    // can record fit into the page with the given page size
     public boolean canRecordFitInPage(Record record) {
         return getFreeSpace() - record.calculateRecordSize() >= 0;
     }
 
+    // debugging
     public void printPage() {
         int indexOfRecord = 0;
         System.out.println();
