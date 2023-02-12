@@ -1,4 +1,5 @@
 package Buffer;
+
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.sql.Timestamp;
@@ -27,11 +28,17 @@ public class PageBuffer {
         this.writer = writer;
     }
 
+    // creates a new page and returns the newly created page
     public Page createNewPage() throws FileNotFoundException, IOException {
         int newPageIndex = this.getTotalPages();
         Page newPage = new Page(newPageIndex, new ArrayList<>(), this.getSchema());
-        writer.writePage(newPage);
-        return this.getPage(newPageIndex);
+        this.pageBuffer.add(newPage);
+        this.currentBufferSize += 1;
+
+        if (this.maxBufferSize <= this.currentBufferSize) {
+            writeLRUPage();
+        }
+        return newPage;
     }
 
     /*
@@ -73,6 +80,7 @@ public class PageBuffer {
         }
     }
 
+    // write the least recently used page to the db and remove it from the buffer
     public void writeLRUPage() throws IOException {
         Timestamp minTimestamp = pageBuffer.get(0).getTime();
         int idx = 0;
@@ -84,32 +92,24 @@ public class PageBuffer {
         }
 
         Page removedPage = this.pageBuffer.remove(idx);
-        this.writer.writePage(removedPage); // replace this with ^ once BW is updated
+        this.writer.writePage(removedPage);
         this.currentBufferSize -= 1;
     }
 
+    // empty buffer
     public void clearBuffer() throws IOException {
         while (this.currentBufferSize != 0) {
             writeLRUPage();
         }
     }
 
+    // inserts a new page at an index
     public Page insertNewPage(int pageIndex) throws IOException {
-        // get new page from writer and shift bytes
         Page newPage = new Page(pageIndex, new ArrayList<>(), getSchema());
-        writer.insertNewPage(newPage);
-        updateBufferPagesID(pageIndex);
         return newPage;
     }
 
-    public void updateBufferPagesID(int pageIndex) {
-        for (Page page : pageBuffer) {
-            if (page.getPageID() >= pageIndex) {
-                page.incrementPageID();
-            }
-        }
-    }
-
+    // write the schema to the catalog file
     public void writeSchemaToFile(ArrayList<Object> schema) throws IOException {
         this.writer.writeSchemaToFile(schema);
     }
@@ -122,10 +122,21 @@ public class PageBuffer {
         writer.initDB();
     }
 
+    // calculate the ammount of pages that exist in the db. This can be pages stored in the db or the buffer
     public int getTotalPages() throws IOException {
-        return writer.getTotalPages();
+        int highestPageInBuffer = 0;
+
+        for (Page page : this.pageBuffer) {
+            if (page.getPageID() + 1 > highestPageInBuffer) {
+                highestPageInBuffer = page.getPageID() + 1;
+            }
+        }
+
+        int pagesInDb = reader.getTotalPages();
+        return highestPageInBuffer >= pagesInDb ? highestPageInBuffer : pagesInDb;
     }
 
+    // debugging
     public void printBuffer() {
         System.out.println("PAGE BUFFER");
         for (Page page : pageBuffer) {
@@ -133,6 +144,7 @@ public class PageBuffer {
         }
     }
 
+    // debugging
     public void printDB() throws IOException {
         reader.printDB();
     }

@@ -22,6 +22,7 @@ public class BinaryReader {
         this.schema = schema;
     }
 
+    // get the schema from the catalog
     public Schema getSchema() {
         ArrayList<SchemaAttribute> attributes = new ArrayList<>();
         try (FileInputStream inputStream = new FileInputStream(this.schema.getPath() + "catalog.txt")) {
@@ -64,6 +65,15 @@ public class BinaryReader {
         return null;
     }
 
+    // retrieve the total amount of pages stored in the db
+    public int getTotalPages() throws IOException {
+        RandomAccessFile raf = new RandomAccessFile(this.schema.getPath() + "database.txt", "rw");
+        int totalPages = raf.readInt();
+        raf.close();
+        return totalPages;
+    }
+
+    // reads in a given page from the file
     public Page readPage(RandomAccessFile raf, int bytesToRead, int pageId) throws IOException {
         long positionBefore = raf.getFilePointer();
 
@@ -145,6 +155,7 @@ public class BinaryReader {
         return page;
     }
 
+    // read in a record from the file
     public ArrayList<Object> readRecord(String fileName) throws IOException {
         ArrayList<Object> data = new ArrayList<>();
         try (DataInputStream dis = new DataInputStream(new FileInputStream(fileName))) {
@@ -171,6 +182,7 @@ public class BinaryReader {
         return data;
     }
 
+    // debuggin
     public void printDB() throws IOException {
         RandomAccessFile raf = new RandomAccessFile(this.schema.getPath() + "database.txt", "rw");
 

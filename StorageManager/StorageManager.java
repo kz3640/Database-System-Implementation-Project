@@ -8,8 +8,6 @@ import Buffer.PageBuffer;
 import Buffer.Page;
 import Record.Record;
 import Record.RecordAttribute;
-import Schema.BICD;
-import Schema.Char;
 import Schema.Schema;
 import Schema.SchemaAttribute;
 
@@ -23,10 +21,12 @@ public class StorageManager {
         return;
     }
 
+    // return the current schema. This is for any class that doesn't have access to the schema
     public Schema getSchema() {
         return schema;
     }
 
+    // healper for creating the schema file. 
     public ArrayList<Object> addDataToArray(String[] input) {
         ArrayList<Object> data = new ArrayList<Object>();
         for (String s : input) {
@@ -59,6 +59,7 @@ public class StorageManager {
         return data;
     }
 
+    // function to create a catalog then call the buffer to write it to the file
     public void createCatalog(String[] input) throws IOException {
         // parse insert table command
         ArrayList<Object> catalog = addDataToArray(input);
@@ -67,6 +68,7 @@ public class StorageManager {
         this.schema = pageBuffer.getSchema();
     }
 
+    // compare record to schema to see if it can be entered into the db
     public boolean checkData(Record record) {
         ArrayList<SchemaAttribute> schemaAttributes = this.schema.getAttributes();
 
@@ -115,6 +117,9 @@ public class StorageManager {
         return true;
     }
 
+    // add record into page.
+    // return:  false -> record doesn't go into page
+    //          true -> record was added into page
     public boolean insertRecordInPage(Page page, Record record) throws IOException {
         boolean shouldBeAdded = false;
         int indexToBeAdded = 0;
@@ -127,6 +132,7 @@ public class StorageManager {
 
         int indexOfPrimaryKey = this.schema.getIndexOfPrimaryKey();
 
+        // compare primary key and insert if possible
         for (int i = 0; i < pageRecords.size(); i++) {
             Record recordInPage = pageRecords.get(i);
             RecordAttribute primaryKeyRecord = recordInPage.getData().get(indexOfPrimaryKey);
@@ -158,10 +164,12 @@ public class StorageManager {
             }
         }
 
+        // couldn't find a spot for the primary key so return false
         if (!shouldBeAdded) {
             return false;
         }
 
+        // check remaining space and see if we need to split
         if (page.canRecordFitInPage(record)) {
             page.addRecord(indexToBeAdded, record);
         } else {
@@ -172,9 +180,23 @@ public class StorageManager {
         return true;
     }
 
+    // split page and add record to correct page
     public void splitPage(Page page) throws IOException {
+
+        // we need to update the id of every other page so we loop over all of them and increment the pageID
+        int pageIndex = this.pageBuffer.getTotalPages() - 1;
+
+        while (true) {
+            if (pageIndex <= page.getPageID())
+                break;
+            Page pageToUpdate = this.pageBuffer.getPage(pageIndex);
+            pageToUpdate.incrementPageID();
+            pageIndex--;
+        }
+
         Page newPage = pageBuffer.insertNewPage(page.getPageID() + 1);
 
+        // split records evenly
         ArrayList<Record> records = page.getRecords();
         int splitIndex = records.size() / 2;
         ArrayList<Record> firstHalf = new ArrayList<>(records.subList(0, splitIndex));
@@ -185,6 +207,7 @@ public class StorageManager {
         pageBuffer.addPageToBuffer(newPage);
     }
 
+    // convert string from input to record
     public Record stringToRecord(String[] input) {
         ArrayList<RecordAttribute> recordData = new ArrayList<RecordAttribute>();
         int index = 0;
@@ -219,16 +242,17 @@ public class StorageManager {
             index++;
         }
 
-
         Record r = new Record(recordData);
 
         return r;
     }
 
+    // add string to the db
     public void addRecord(String[] input) throws IOException {
         addRecord(stringToRecord(input));
     }
 
+    //add record to db
     public void addRecord(Record record) throws IOException {
 
         if (this.schema.getAttributes() == null) {
@@ -260,6 +284,7 @@ public class StorageManager {
         }
     }
 
+    // print all records
     public void printAllRecords() throws IOException {
         int pageIndex = 0;
         while (true) {
@@ -275,6 +300,7 @@ public class StorageManager {
         }
     }
 
+    // empty buffer
     public void writeBuffer() throws IOException {
         pageBuffer.clearBuffer();
     }

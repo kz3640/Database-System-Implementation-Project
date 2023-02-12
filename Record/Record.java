@@ -23,6 +23,7 @@ public class Record {
         this.data.add(recordAttribute);
     }
 
+    // debugging
     public void printRecord() {
         for (RecordAttribute col : this.data) {
             System.out.print(" | ");
@@ -31,6 +32,7 @@ public class Record {
         System.out.println("");
     }
 
+    // calculate the total amount of bytes that the record takes up
     public int calculateBytes() {
         // data.getData();
         int size = 0;

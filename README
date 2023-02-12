@@ -1,14 +1,39 @@
-TODO:
 
-1. main function with while loop that reads input 
-2. create file
-    + covert data to bytes
-    + write to file
--. Displays
-3. read file 
-    + read in bytes
-    + convert bytes
 
-4. Buffer
-5. query processor
-6. Test (If time)
+Storage:
+
+create folder at path.
+crate catalog "/path/catalog.txt"
+crate db "/path/database.txt"
+
+catalog storage:
+    create file when create table.
+
+
+db storage:
+    create file on program launch
+    init file to have 0 pages
+
+
+file:
+    <numpages>
+    <page1>
+    <pageX>
+
+page:
+    <pageId>
+    <numOfJunkBytesAfterLastRecord (int)>
+    <record1>
+    <recordX>
+    <junkSpace>
+
+record:
+    <sizeOfRecord (int)> // might not need
+    <nullBitMap>
+    <attribute1>
+    <attributeX>
+
+attribute:
+    use standard writeInt, writeBoolean or writeDouble
+    for chars: pad string (short followed by string length) with "-" character, write as string, write an int to trim off "-" characters
+    for strings: write string (short followed by string length)

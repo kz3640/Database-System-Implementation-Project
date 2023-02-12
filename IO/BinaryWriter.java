@@ -20,9 +20,43 @@ public class BinaryWriter {
         return;
     }
 
+    // create the initial db file with 0 pages
+    public void initDB() throws IOException {
+        File db = new File(this.schema.getPath() + "database.txt");
+        db.createNewFile();
+        RandomAccessFile raf = new RandomAccessFile(this.schema.getPath() + "database.txt", "rw");
+        raf.writeInt(0);
+        raf.close();
+    }
+
+    // write the schema to the catalog file
+    public void writeSchemaToFile(ArrayList<Object> data) throws IOException {
+        String fileName = this.schema.getPath() + "catalog.txt";
+        RandomAccessFile raf = new RandomAccessFile(fileName, "rw");
+        for (Object o : data) {
+            writeSchemaDataType(o, fileName, raf);
+        }
+    }
+
+    // writes out the schema attribtues
+    public void writeSchemaDataType(Object o, String fileName, RandomAccessFile raf) throws IOException {
+        if (o instanceof Integer) {
+            raf.writeInt((Integer) o);
+        } else if (o instanceof Boolean) {
+            raf.writeBoolean((Boolean) o);
+        } else if (o instanceof Character) {
+            raf.writeChar((Character) o);
+        } else if (o instanceof String) {
+            raf.writeUTF((String) o);
+        } else if (o instanceof Double) {
+            raf.writeDouble((Double) o);
+        }
+    }
+
+    // write a record to the file. raf should be at the correct spot already
     public void writeRecordToFile(Record record, RandomAccessFile raf) throws IOException {
         String fileName = this.schema.getPath() + "database.txt";
-        
+
         int recordSize = record.calculateBytes();
         ArrayList<RecordAttribute> recordData = record.getData();
         int numBits = recordData.size();
@@ -52,67 +86,7 @@ public class BinaryWriter {
         }
     }
 
-    public void insertNewPage(Page page) throws IOException {
-        String fileName = this.schema.getPath() + "database.txt";
-        RandomAccessFile raf = new RandomAccessFile(fileName, "rw");
-
-        int skipBytes = ((page.getPageID()) * this.schema.getPageSize()) + 4;
-
-        int totalPages = raf.readInt();
-        totalPages++;
-        raf.seek(0);
-        raf.writeInt(totalPages);
-
-        // add at end of file
-        if (skipBytes >= raf.length()) {
-            writePage(page);
-            raf.close();
-            return;
-        }
-
-        raf.seek(skipBytes);
-
-        int bytesToRead = (int) (raf.length() - raf.getFilePointer());
-        byte[] buffer = new byte[bytesToRead];
-        raf.read(buffer, 0, bytesToRead);
-        writePage(page);
-        raf.write(buffer);
-        raf.close();
-
-        increaseAllPageIds(page.getPageID());
-        return;
-    }
-
-    private void increaseAllPageIds(int pageIndex) throws IOException {
-        String fileName = this.schema.getPath() + "database.txt";
-        RandomAccessFile raf = new RandomAccessFile(fileName, "rw");
-        int totalPages = raf.readInt();
-
-        int pageToChange = pageIndex;
-        while (pageToChange < totalPages) {
-            int skipBytes = (pageToChange * this.schema.getPageSize()) + 4;
-            raf.seek(skipBytes);
-            raf.writeInt(pageToChange);
-            pageToChange++;
-        }
-        raf.close();
-    }
-
-    public int getTotalPages() throws IOException {
-        RandomAccessFile raf = new RandomAccessFile(this.schema.getPath() + "database.txt", "rw");
-        int totalPages = raf.readInt();
-        raf.close();
-        return totalPages;
-    }
-
-    public void initDB() throws IOException {
-        File db = new File(this.schema.getPath() + "database.txt");
-        db.createNewFile();
-        RandomAccessFile raf = new RandomAccessFile(this.schema.getPath() + "database.txt", "rw");
-        raf.writeInt(0);
-        raf.close();
-    }
-
+    // given a page, it will write that page to the correct location in the file
     public void writePage(Page page) throws FileNotFoundException, IOException {
 
         String fileName = this.schema.getPath() + "database.txt";
@@ -121,16 +95,33 @@ public class BinaryWriter {
 
         RandomAccessFile raf = new RandomAccessFile(fileName, "rw");
         int totalPages = raf.readInt();
+        int oldTotal = totalPages;
 
         // if we are adding a new page then we need to increment the total pages
         if (page.getPageID() >= totalPages) {
-            totalPages++;
+            totalPages = page.getPageID() + 1;
             raf.seek(0);
             raf.writeInt(totalPages);
         }
 
+        // if the page to insert is greater than the ammount of pages that are in the db (ex. db have 0 pages but we want to write page 4)
+        // create 4 blank pages and write page 4 after them
+        int blankPageIndex = oldTotal;
+        int blackPageByteLocation = (blankPageIndex * this.schema.getPageSize()) + 4;
+        raf.seek(blackPageByteLocation);
+        while (blankPageIndex < page.getPageID()) {
+            int junkSpace = Util.calculateJunkSpaceSize(new Page(blankPageIndex, new ArrayList<>(), schema),
+                    this.schema.getPageSize());
+            raf.writeInt(blankPageIndex);
+            raf.writeInt(junkSpace);
+            byte[] junk = new byte[junkSpace];
+            raf.write(junk);
+            blankPageIndex++;
+        }
+
         raf.seek(skipBytes);
 
+        // write the pageId, junkspace and record
         int junkSpace = Util.calculateJunkSpaceSize(page, this.schema.getPageSize());
         raf.writeInt(page.getPageID());
         raf.writeInt(junkSpace);
@@ -142,28 +133,7 @@ public class BinaryWriter {
         raf.write(junk);
     }
 
-    public void writeSchemaToFile(ArrayList<Object> data) throws IOException {
-        String fileName = this.schema.getPath() + "catalog.txt";
-        RandomAccessFile raf = new RandomAccessFile(fileName, "rw");
-        for (Object o : data) {
-            writeSchemaDataType(o, fileName, raf);
-        }
-    }
-
-    public void writeSchemaDataType(Object o, String fileName, RandomAccessFile raf) throws IOException {
-        if (o instanceof Integer) {
-            raf.writeInt((Integer) o);
-        } else if (o instanceof Boolean) {
-            raf.writeBoolean((Boolean) o);
-        } else if (o instanceof Character) {
-            raf.writeChar((Character) o);
-        } else if (o instanceof String) {
-            raf.writeUTF((String) o);
-        } else if (o instanceof Double) {
-            raf.writeDouble((Double) o);
-        }
-    }
-
+    // writes out a records attributes
     public void writeDataType(RecordAttribute attribute, String fileName, RandomAccessFile raf) throws IOException {
         if (attribute.getType() == int.class) {
             raf.writeInt((Integer) attribute.getAttribute());
