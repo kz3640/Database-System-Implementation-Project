@@ -28,11 +28,11 @@ public class InputHandler {
 
         // create table Name colName p i colName d
 
-        if (input.split("\\s+")[0].equals("create") && input.split("\\s+")[1].equals("table")) {
+        if (input.toLowerCase().split("\\s+")[0].equals("create") && input.toLowerCase().split("\\s+")[1].equals("table")) {
             if (!input.split(" ")[2].split("\\(")[0].matches("[a-zA-Z0-9]+")) {
-                System.out.println(input.split(" ")[2].split("\\(")[0]);
                 System.err.println("Invalid table name.");
                 return true;
+                //TODO CHECK EXISTENCE
             }
             int startIndex = input.indexOf("(");
             int endIndex = input.lastIndexOf(")");
@@ -55,7 +55,7 @@ public class InputHandler {
                         System.err.println(fullyTokenized[i][j] + " is not a valid name.");
                         return true;
                     }
-                    if(j == 1 && !fullyTokenized[i][j].matches("Integer|Double|Boolean|Char\\([0-9]+\\)|Varchar\\([0-9]+\\)")) {
+                    if(j == 1 && !fullyTokenized[i][j].toLowerCase().matches("integer|double|boolean|char\\([0-9]+\\)|varchar\\([0-9]+\\)")) {
                         System.err.println(fullyTokenized[i][j] + " is not a valid type.");
                         return true;
                     }
@@ -66,20 +66,21 @@ public class InputHandler {
                         }
                         hasKey = true;
                     }
+                    //TODO MAKE BICD
                 }
             }
             System.out.println("Creating table...");
-            //TODO
+            //TODO CREATE TABLE
             return true;
             //storageManager.createCatalog(newInput);
         }
 
-        if (input.split("\\s+")[0].equals("select")) {
+        if (input.split("\\s+")[0].toLowerCase().equals("select")) {
             String name = input.split("\\s+")[3];
             //TODO CHECK NAME EXISTS
         }
 
-        if (input.split("\\s+")[0].equals("insert") && input.split("\\s+")[1].equals("into")) {
+        if (input.split("\\s+")[0].toLowerCase().equals("insert") && input.split("\\s+")[1].toLowerCase().equals("into")) {
             String name = input.split("\\s+")[2];
             int startIndex = input.indexOf("(");
             int endIndex = input.lastIndexOf(")");
@@ -95,11 +96,11 @@ public class InputHandler {
 
         }
 
-        if (input.split("\\s+")[0].equals("display") && input.split("\\s+")[1].equals("schema")) {
+        if (input.split("\\s+")[0].toLowerCase().equals("display") && input.split("\\s+")[1].toLowerCase().equals("schema")) {
             //TODO DISPLAY SCHEMA
         }
 
-        if (input.split("\\s+")[0].equals("display") && input.split("\\s+")[1].equals("info")) {
+        if (input.split("\\s+")[0].toLowerCase().equals("display") && input.split("\\s+")[1].toLowerCase().equals("info")) {
             String name = input.split("\\s+")[2];
             if(!name.matches("[a-zA-Z0-9]+")) {
                 System.err.println("Invalid name: " + name);
@@ -109,11 +110,11 @@ public class InputHandler {
             //TODO DISPLAY INFO
         }
 
-        if (input.split("\\s+")[0].equals("quit")) {
+        if (input.split("\\s+")[0].toLowerCase().equals("quit")) {
             return false;
         }
 
-        if (input.split("\\s+")[0].equals("help")) {
+        if (input.split("\\s+")[0].toLowerCase().equals("help")) {
             System.out.println("Create table command:");
             System.out.println("create table <name>(\n" +
                     "   <attr_name1> <attr_type1> primarykey,\n" +
