@@ -55,13 +55,22 @@ public class Main {
             pageBuffer.initDB();
         }
 
+
         Scanner scan = new Scanner(System.in);
-        while (true) {
-            System.out.println("Enter command");
-            String[] input = scan.nextLine().split(" ");
-            if (input[0].equals("quit"))
-                break;
-            inputHandler.handleInput(input);
+        boolean programRunning = true;
+        while(programRunning) {
+            StringBuilder input = new StringBuilder();
+            System.out.println("Enter command: ");
+            while (true) {
+                String line = scan.nextLine();
+                if (line.trim().endsWith(";")) {
+                    input.append(line.substring(0, line.length() - 1));
+                    break;
+                }
+                input.append(line + " ");
+            }
+            String finalInput = input.toString().replaceAll("\\s+", " ");
+            programRunning = inputHandler.handleInput(finalInput);
         }
         scan.close();
     }
