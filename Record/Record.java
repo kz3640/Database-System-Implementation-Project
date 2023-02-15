@@ -6,9 +6,15 @@ import Util.Util;
 
 public class Record {
     private ArrayList<RecordAttribute> data;
+    private String tableName;
 
-    public Record(ArrayList<RecordAttribute> data) {
+    public Record(ArrayList<RecordAttribute> data, String tableName) {
         this.data = data;
+        this.tableName = tableName;
+    }
+
+    public String getTableName() {
+        return tableName;
     }
 
     public ArrayList<RecordAttribute> getData() {

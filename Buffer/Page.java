@@ -3,20 +3,23 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
 
-import Schema.Schema;
+import Catalog.Catalog;
+import Catalog.Schema;
 import Record.Record;
 import Util.Util;
 
 public class Page {
     ArrayList<Record> records;
 
+    private String fileName;
     private int pageId;
-    private Schema schema;
+    private Catalog catalog;
     private Timestamp timestamp;
 
-    public Page(int pageId, ArrayList<Record> records, Schema schema) {
+    public Page(int pageId, ArrayList<Record> records, Catalog catalog, String fileName) {
         this.records = records;
-        this.schema = schema;
+        this.fileName = fileName;
+        this.catalog = catalog;
         this.pageId = pageId;
         this.timestamp = Timestamp.from(Instant.now());
     }
@@ -55,7 +58,7 @@ public class Page {
 
     // calculate how much free space exists after all of the records
     public int getFreeSpace() {
-        return Util.calculateJunkSpaceSize(this, this.schema.getPageSize());
+        return Util.calculateJunkSpaceSize(this, this.catalog.getPageSize());
     }
 
     // can record fit into the page with the given page size
@@ -63,16 +66,25 @@ public class Page {
         return getFreeSpace() - record.calculateRecordSize() >= 0;
     }
 
+    public String getFileName() {
+        return fileName;
+    }
+
+    public Schema getSchema() {
+        String tableName = this.catalog.fileNameToTableName(this.fileName);
+        return this.catalog.getSchemaByName(tableName);
+    }
+
     // debugging
     public void printPage() {
         int indexOfRecord = 0;
-        System.out.println();
-        System.out.print("pageID: " + this.pageId);
+        System.out.println("pageID: " + this.pageId);
+        System.out.println("FileName: " + this.fileName);
         if (this.records.size() == 0) {
             System.out.println("\n page contains no records");
         }
         for (Record record : this.records) {
-            System.out.print("\n record: " + indexOfRecord);
+            System.out.print("\n record" + indexOfRecord + ": ");
             record.printRecord();
             indexOfRecord++;
         }

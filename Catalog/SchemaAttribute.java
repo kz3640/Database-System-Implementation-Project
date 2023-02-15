@@ -1,4 +1,4 @@
-package Schema;
+package Catalog;
 public interface SchemaAttribute {
     public Class<?> getType();
 
@@ -6,7 +6,7 @@ public interface SchemaAttribute {
 
     public boolean isNotNull();
 
-    public Character getLetter();
+    public String getTypeAsString();
 
     public boolean isPrimaryKey();
 

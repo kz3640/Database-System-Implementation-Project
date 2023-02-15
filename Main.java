@@ -3,7 +3,7 @@ import java.io.IOException;
 import java.util.Scanner;
 
 import Buffer.PageBuffer;
-import Schema.Schema;
+import Catalog.Catalog;
 import StorageManager.StorageManager;
 import IO.BinaryWriter;
 import InputHandler.InputHandler;
@@ -22,6 +22,7 @@ public class Main {
             return;
         }
 
+        // read program parameters
         String path = null;
         int pageSize = 0;
         int bufferSize = 0;
@@ -30,41 +31,43 @@ public class Main {
             pageSize = Integer.parseInt(args[1]);
             bufferSize = Integer.parseInt(args[2]);
         } catch (Exception _e) {
-            System.out.println("Unexpected program parameters");
+            System.out.println("Unexpected program parameters. See usage");
             System.exit(0);
         }
+
+        BinaryReader reader = new BinaryReader();
+        BinaryWriter writer = new BinaryWriter();
+        Catalog catalog;
+
         File file = new File(path);
-
-        Schema schema = new Schema(null, path, pageSize, null);
-
-        BinaryReader reader = new BinaryReader(schema);
-        BinaryWriter writer = new BinaryWriter(schema);
-        PageBuffer pageBuffer = new PageBuffer(pageSize, bufferSize, reader, writer);
-        StorageManager storageManager = new StorageManager(pageBuffer, schema);
-        InputHandler inputHandler = new InputHandler(writer, reader, storageManager);
-
-        if (file.exists() && file.isDirectory()) {
-            if (new File(path + "catalog.txt").exists()) {
-                schema = reader.getSchema();
-            }
-        } else {
+        if (!(file.exists() && file.isDirectory())) {
             file.mkdirs();
+            if (!new File(path + "catalog.txt").exists()) {
+                System.out.println("No existing db found.");
+                System.out.println("Creating new db at " + path);
+                writer.createCatalog(path, pageSize);
+            }
         }
+        catalog = reader.getCatalog(path, pageSize, bufferSize);
+        writer.setCatalog(catalog);
 
-        if (!new File(path + "database.txt").exists()) {
-            pageBuffer.initDB();
-        }
-
+        PageBuffer pageBuffer = new PageBuffer(bufferSize, reader, writer, catalog);
+        StorageManager storageManager = new StorageManager(pageBuffer, catalog);
+        InputHandler inputHandler = new InputHandler(writer, reader, storageManager);
 
         Scanner scan = new Scanner(System.in);
         boolean programRunning = true;
-        while(programRunning) {
+        while (programRunning) {
             StringBuilder input = new StringBuilder();
             System.out.println("Enter command: ");
             while (true) {
                 String line = scan.nextLine();
-                if (line.trim().endsWith(";")) {
-                    input.append(line.substring(0, line.length() - 1));
+
+                // check to see if there is a semicolon in the input
+                int semicolonIndex = line.indexOf(";");
+                if (semicolonIndex != -1) {
+                    // if there is then add everything before the semicolon to the stringbuilder
+                    input.append(line.substring(0, semicolonIndex + 1));
                     break;
                 }
                 input.append(line + " ");

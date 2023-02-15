@@ -8,25 +8,37 @@ import Buffer.PageBuffer;
 import Buffer.Page;
 import Record.Record;
 import Record.RecordAttribute;
-import Schema.Schema;
-import Schema.SchemaAttribute;
+import Catalog.Catalog;
+import Catalog.Schema;
+import Catalog.SchemaAttribute;
 
 public class StorageManager {
-    private Schema schema;
+    private Catalog catalog;
     public PageBuffer pageBuffer;
 
-    public StorageManager(PageBuffer pageBuffer, Schema schema) {
+    public StorageManager(PageBuffer pageBuffer, Catalog catalog) {
         this.pageBuffer = pageBuffer;
-        this.schema = schema;
+        this.catalog = catalog;
         return;
     }
 
-    // return the current schema. This is for any class that doesn't have access to the schema
-    public Schema getSchema() {
-        return schema;
+    // return the current catalog. This is for any class that doesn't have access to
+    // the catalog
+    public Catalog getCatalog() {
+        return catalog;
     }
 
-    // healper for creating the schema file. 
+    public boolean addSchema(Schema schema) {
+        if (catalog.doesTableNameExist(schema.getTableName())) {
+            System.out.println("Table with name " + schema.getTableName() + " already exists.");
+            return false;
+        }
+        pageBuffer.writer.addSchemaToFile(schema);
+        this.catalog.addSchema(schema);
+        return true;
+    }
+
+    // healper for creating the catalog file.
     public ArrayList<Object> addDataToArray(String[] input) {
         ArrayList<Object> data = new ArrayList<Object>();
         for (String s : input) {
@@ -60,67 +72,20 @@ public class StorageManager {
     }
 
     // function to create a catalog then call the buffer to write it to the file
-    public void createCatalog(String[] input) throws IOException {
-        // parse insert table command
-        ArrayList<Object> catalog = addDataToArray(input);
-        catalog.add(0, this.schema.getPageSize());
-        pageBuffer.writeSchemaToFile(catalog);
-        this.schema = pageBuffer.getSchema();
-    }
+    // public void createCatalog(String[] input) throws IOException {
+    // // parse insert table command
+    // ArrayList<Object> catalog = addDataToArray(input);
+    // catalog.add(0, this.catalog.getPageSize());
+    // pageBuffer.writeCatalogToFile(catalog);
+    // this.catalog = pageBuffer.getCatalog();
+    // }
 
-    // compare record to schema to see if it can be entered into the db
-    public boolean checkData(Record record) {
-        ArrayList<SchemaAttribute> schemaAttributes = this.schema.getAttributes();
-
-        ArrayList<RecordAttribute> recordAttributes = record.getData();
-        if (recordAttributes.size() != schemaAttributes.size()) {
-            return false;
-        }
-
-        for (int index = 0; index < recordAttributes.size(); index++) {
-            if (schemaAttributes.get(index).isNotNull() && recordAttributes.get(index) == null) {
-                return false;
-            }
-            if (!schemaAttributes.get(index).isNotNull() && recordAttributes.get(index) == null) {
-                continue;
-            }
-            switch (schemaAttributes.get(index).getLetter()) {
-                case 'i':
-                    if (!(recordAttributes.get(index).getType() == int.class)) {
-                        return false;
-                    }
-                    break;
-                case 'v':
-                    if (!(recordAttributes.get(index).getType() == String.class)) {
-                        return false;
-                    }
-                    break;
-                case 'c':
-                    if (!(recordAttributes.get(index).getType() == Character.class)) {
-                        return false;
-                    }
-                    break;
-                case 'd':
-                    if (!(recordAttributes.get(index).getType() == double.class)) {
-                        return false;
-                    }
-                    break;
-                case 'b':
-                    if (!(recordAttributes.get(index).getType() == boolean.class)) {
-                        return false;
-                    }
-                    break;
-                default:
-                    return false;
-            }
-        }
-        return true;
-    }
+    // compare record to catalog to see if it can be entered into the db
 
     // add record into page.
-    // return:  false -> record doesn't go into page
-    //          true -> record was added into page
-    public boolean insertRecordInPage(Page page, Record record) throws IOException {
+    // return: false -> record doesn't go into page
+    // true -> record was added into page
+    public boolean insertRecordInPage(Page page, Record record, Schema schema) {
         boolean shouldBeAdded = false;
         int indexToBeAdded = 0;
 
@@ -130,7 +95,7 @@ public class StorageManager {
             return true;
         }
 
-        int indexOfPrimaryKey = this.schema.getIndexOfPrimaryKey();
+        int indexOfPrimaryKey = schema.getIndexOfPrimaryKey();
 
         // compare primary key and insert if possible
         for (int i = 0; i < pageRecords.size(); i++) {
@@ -181,20 +146,21 @@ public class StorageManager {
     }
 
     // split page and add record to correct page
-    public void splitPage(Page page) throws IOException {
+    public void splitPage(Page page) {
 
-        // we need to update the id of every other page so we loop over all of them and increment the pageID
-        int pageIndex = this.pageBuffer.getTotalPages() - 1;
+        // we need to update the id of every other page so we loop over all of them and
+        // increment the pageID
+        int pageIndex = this.pageBuffer.getTotalPages(page.getSchema()) - 1;
 
         while (true) {
             if (pageIndex <= page.getPageID())
                 break;
-            Page pageToUpdate = this.pageBuffer.getPage(pageIndex);
+            Page pageToUpdate = this.pageBuffer.getPage(pageIndex, page.getSchema());
             pageToUpdate.incrementPageID();
             pageIndex--;
         }
 
-        Page newPage = pageBuffer.insertNewPage(page.getPageID() + 1);
+        Page newPage = pageBuffer.insertNewPage(page.getPageID() + 1, page.getFileName());
 
         // split records evenly
         ArrayList<Record> records = page.getRecords();
@@ -207,92 +173,18 @@ public class StorageManager {
         pageBuffer.addPageToBuffer(newPage);
     }
 
-    // convert string from input to record
-    public Record stringToRecord(String[] input) {
-        ArrayList<RecordAttribute> recordData = new ArrayList<RecordAttribute>();
-        int index = 0;
-        for (String s : input) {
-            if (s.equals("null")) {
-                recordData.add(new RecordAttribute(null, null, 0));
-                index++;
-                continue;
-            }
-            try {
-                int i = Integer.parseInt(s);
-                recordData.add(new RecordAttribute(int.class, i, 0));
-            } catch (NumberFormatException e) {
-                String lowerString = s.toLowerCase();
-                if (lowerString.equals("true") || lowerString.equals("false")) {
-                    boolean b = Boolean.parseBoolean(s);
-                    recordData.add(new RecordAttribute(boolean.class, b, 0));
-                } else {
-                    try {
-                        double d = Double.parseDouble(s);
-                        recordData.add(new RecordAttribute(double.class, d, 0));
-                    } catch (NumberFormatException exx) {
-                        if (schema.getAttributes().get(index).getLetter() == 'c') {
-                            int charLength = this.schema.getAttributes().get(index).getLength();
-                            recordData.add(new RecordAttribute(Character.class, s, charLength));
-                        } else if (schema.getAttributes().get(index).getLetter() == 'v') {
-                            recordData.add(new RecordAttribute(String.class, s, 0));
-                        }
-                    }
-                }
-            }
-            index++;
-        }
-
-        Record r = new Record(recordData);
-
-        return r;
-    }
-
-    // add string to the db
-    public void addRecord(String[] input) throws IOException {
-        addRecord(stringToRecord(input));
-    }
-
-    //add record to db
-    public void addRecord(Record record) throws IOException {
-
-        if (this.schema.getAttributes() == null) {
-            return;
-        }
-
-        // check to see if input is valid
-        boolean validInput = checkData(record);
-        if (!validInput) {
-            System.out.println("Invalid input");
-            return;
-        }
-
-        // create new file if doesn't exist
-        File db = new File(this.schema.getPath() + "database.txt");
-        db.createNewFile();
+    public void select(String args, String tableName) {
+        this.catalog.getSchemaByName(tableName);
+        Schema schema =  this.catalog.getSchemaByName(tableName);
 
         int pageIndex = 0;
-        while (true) {
-            if (this.pageBuffer.getTotalPages() <= pageIndex)
-                pageBuffer.createNewPage();
-
-            Page page = this.pageBuffer.getPage(pageIndex);
-
-            if (insertRecordInPage(page, record))
-                break;
-
-            pageIndex++;
-        }
-    }
-
-    // print all records
-    public void printAllRecords() throws IOException {
-        int pageIndex = 0;
+        int pagesInTable = this.pageBuffer.getTotalPages(schema);
         while (true) {
 
-            if (this.pageBuffer.getTotalPages() <= pageIndex)
+            if (pagesInTable <= pageIndex)
                 break;
 
-            Page page = this.pageBuffer.getPage(pageIndex);
+            Page page = this.pageBuffer.getPage(pageIndex, schema);
 
             page.printPage();
 
@@ -300,14 +192,55 @@ public class StorageManager {
         }
     }
 
+    // add record to db
+    public void addRecord(Record record) {
+        // create new file if doesn't exist
+        File db = new File(this.catalog.getFileOfRecord(record));
+        try {
+            db.createNewFile();
+        } catch (IOException e) {
+        }
+
+        Schema schema = this.catalog.getSchemaByName(record.getTableName());
+        int pageIndex = 0;
+        int pagesInTable = this.pageBuffer.getTotalPages(schema);
+        while (true) {
+            if (pagesInTable <= pageIndex)
+                pageBuffer.createNewPage(schema);
+
+            Page page = this.pageBuffer.getPage(pageIndex, schema);
+
+            if (insertRecordInPage(page, record, schema))
+                break;
+
+            pageIndex++;
+        }
+    }
+
+    public void printTableInfo(String tableName) {
+        System.out.println();
+        Schema schema = this.catalog.getSchemaByName(tableName);
+        if (schema == null) {
+            System.out.println();
+            return;
+        }
+        schema.printSchema();
+
+        System.out.println("Pages: " + pageBuffer.getTotalPages(schema));
+        System.out.println("Records: "+ pageBuffer.getRecordAmmount(schema));
+
+        System.out.println();
+        
+    }
+
     // empty buffer
     public void writeBuffer() throws IOException {
         pageBuffer.clearBuffer();
     }
 
-    public void printDB() throws IOException {
-        pageBuffer.printDB();
-    }
+    // public void printDB() throws IOException {
+    //     pageBuffer.printDB();
+    // }
 
     public void printBuffer() {
         pageBuffer.printBuffer();
