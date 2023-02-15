@@ -1,6 +1,5 @@
 package Catalog;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -11,16 +10,11 @@ public class Catalog {
     private int pageSize;
     private int bufferSize;
     private Map<String, Schema> tables;
-    // private ArrayList<SchemaAttribute> attributes;
-    // private int indexOfPrimaryKey;
 
     public Catalog(String path, int pageSize, int bufferSize) {
-        // this.tableName = tableName;
         this.pageSize = pageSize;
         this.bufferSize = bufferSize;
-        // this.attributes = attributes;
         this.path = path;
-
         this.tables = new HashMap<>();
     }
 
@@ -31,10 +25,6 @@ public class Catalog {
     public void addSchema(Schema schema) {
         tables.put(schema.getTableName(), schema);
     }
-
-    // public void setAttributes(ArrayList<SchemaAttribute> attributes) {
-    // this.attributes = attributes;
-    // }
 
     public Schema getSchemaByName(String tableName) {
         Schema schema = this.tables.get(tableName);

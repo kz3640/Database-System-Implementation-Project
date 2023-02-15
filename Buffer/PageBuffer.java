@@ -1,11 +1,9 @@
 package Buffer;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 
-import Buffer.Page;
 import IO.BinaryWriter;
 import IO.BinaryReader;
 import Catalog.Catalog;
@@ -126,10 +124,6 @@ public class PageBuffer {
         return highestPageInBuffer >= pagesInDb ? highestPageInBuffer : pagesInDb;
     }
 
-    public void printTableInfo(String tableName) {
-        reader.printTableInfo(tableName);
-    }
-
     public int getRecordAmmount(Schema schema) {
         return this.reader.getRecordAmmount(schema);
     }
@@ -141,9 +135,4 @@ public class PageBuffer {
             page.printPage();
         }
     }
-
-    // debugging
-    // public void printDB() throws IOException {
-    //     reader.printDB();
-    // }
 }
