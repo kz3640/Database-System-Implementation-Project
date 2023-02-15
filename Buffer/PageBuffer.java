@@ -8,30 +8,31 @@ import java.util.ArrayList;
 import Buffer.Page;
 import IO.BinaryWriter;
 import IO.BinaryReader;
-import Schema.Schema;
+import Catalog.Catalog;
+import Catalog.Schema;
 
 public class PageBuffer {
 
     public ArrayList<Page> pageBuffer;
     public int maxBufferSize; // how many pages there are in the db
     public int currentBufferSize;
-    public int pageSize;
     public BinaryReader reader;
     public BinaryWriter writer;
+    public Catalog catalog;
 
-    public PageBuffer(int pageSize, int maxBufferSize, BinaryReader reader, BinaryWriter writer) {
+    public PageBuffer(int maxBufferSize, BinaryReader reader, BinaryWriter writer, Catalog catalog) {
         this.pageBuffer = new ArrayList<Page>();
-        this.pageSize = pageSize;
         this.maxBufferSize = maxBufferSize;
         this.currentBufferSize = 0;
         this.reader = reader;
         this.writer = writer;
+        this.catalog = catalog;
     }
 
     // creates a new page and returns the newly created page
-    public Page createNewPage() throws FileNotFoundException, IOException {
-        int newPageIndex = this.getTotalPages();
-        Page newPage = new Page(newPageIndex, new ArrayList<>(), this.getSchema());
+    public Page createNewPage(Schema schema) {
+        int newPageIndex = this.getTotalPages(schema);
+        Page newPage = new Page(newPageIndex, new ArrayList<>(), this.catalog, schema.getFileName());
         this.pageBuffer.add(newPage);
         this.currentBufferSize += 1;
 
@@ -50,14 +51,15 @@ public class PageBuffer {
      * 
      * @return A boolen representing if the page was found or not.
      */
-    public Page getPage(int pageId) throws IOException {
+    public Page getPage(int pageId, Schema schema) {
         for (int i = 0; i < this.currentBufferSize; i++) {
-            if (this.pageBuffer.get(i).getPageID() == pageId) {
-                return this.pageBuffer.get(i);
+            Page page = this.pageBuffer.get(i);
+            if (page.getPageID() == pageId && page.getFileName().equals(schema.getFileName())) {
+                return page;
             }
         }
 
-        Page page = this.reader.getPage(pageId);
+        Page page = this.reader.getPage(pageId, schema);
         if (page == null)
             return null;
 
@@ -71,7 +73,7 @@ public class PageBuffer {
         return page;
     }
 
-    public void addPageToBuffer(Page page) throws IOException {
+    public void addPageToBuffer(Page page) {
         this.pageBuffer.add(page);
         this.currentBufferSize += 1;
 
@@ -81,7 +83,7 @@ public class PageBuffer {
     }
 
     // write the least recently used page to the db and remove it from the buffer
-    public void writeLRUPage() throws IOException {
+    public void writeLRUPage() {
         Timestamp minTimestamp = pageBuffer.get(0).getTime();
         int idx = 0;
         for (int i = 1; i < this.currentBufferSize; i++) {
@@ -104,36 +106,32 @@ public class PageBuffer {
     }
 
     // inserts a new page at an index
-    public Page insertNewPage(int pageIndex) throws IOException {
-        Page newPage = new Page(pageIndex, new ArrayList<>(), getSchema());
+    public Page insertNewPage(int pageIndex, String fileName) {
+        Page newPage = new Page(pageIndex, new ArrayList<>(), this.catalog, fileName);
         return newPage;
     }
 
-    // write the schema to the catalog file
-    public void writeSchemaToFile(ArrayList<Object> schema) throws IOException {
-        this.writer.writeSchemaToFile(schema);
-    }
-
-    public Schema getSchema() {
-        return this.reader.getSchema();
-    }
-
-    public void initDB() throws IOException {
-        writer.initDB();
-    }
-
     // calculate the ammount of pages that exist in the db. This can be pages stored in the db or the buffer
-    public int getTotalPages() throws IOException {
+    public int getTotalPages(Schema schema) {
+        String fileName = schema.getFileName();
         int highestPageInBuffer = 0;
 
         for (Page page : this.pageBuffer) {
-            if (page.getPageID() + 1 > highestPageInBuffer) {
+            if (page.getPageID() + 1 > highestPageInBuffer && page.getFileName().equals(fileName)) {
                 highestPageInBuffer = page.getPageID() + 1;
             }
         }
 
-        int pagesInDb = reader.getTotalPages();
+        int pagesInDb = reader.getTotalPages(fileName);
         return highestPageInBuffer >= pagesInDb ? highestPageInBuffer : pagesInDb;
+    }
+
+    public void printTableInfo(String tableName) {
+        reader.printTableInfo(tableName);
+    }
+
+    public int getRecordAmmount(Schema schema) {
+        return this.reader.getRecordAmmount(schema);
     }
 
     // debugging
@@ -145,7 +143,7 @@ public class PageBuffer {
     }
 
     // debugging
-    public void printDB() throws IOException {
-        reader.printDB();
-    }
+    // public void printDB() throws IOException {
+    //     reader.printDB();
+    // }
 }

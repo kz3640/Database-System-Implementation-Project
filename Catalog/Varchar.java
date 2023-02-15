@@ -1,12 +1,12 @@
-package Schema;
+package Catalog;
 
-public class Char implements SchemaAttribute {
+public class Varchar implements SchemaAttribute {
     private String attributeName;
     private int length;
     private boolean isPrimaryKey;;
     private boolean notNull;;
 
-    public Char(String attributeName, int length, boolean isPrimaryKey, boolean notNull) {
+    public Varchar(String attributeName, int length, boolean isPrimaryKey, boolean notNull) {
         this.attributeName = attributeName;
         this.length = length;
         this.isPrimaryKey = isPrimaryKey;
@@ -17,12 +17,12 @@ public class Char implements SchemaAttribute {
         return length;
     }
 
-    public Class<Character> getType() {
-        return Character.class;
+    public Class<String> getType() {
+        return String.class;
     }
 
-    public Character getLetter() {
-        return 'c';
+    public String getTypeAsString() {
+        return "varchar";
     }
 
     public boolean isPrimaryKey() {

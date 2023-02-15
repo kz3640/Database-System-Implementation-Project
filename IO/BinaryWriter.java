@@ -9,37 +9,113 @@ import java.util.ArrayList;
 import Buffer.Page;
 import Record.Record;
 import Record.RecordAttribute;
-import Schema.Schema;
+import Catalog.Catalog;
+import Catalog.Schema;
+import Catalog.SchemaAttribute;
 import Util.Util;
 
 public class BinaryWriter {
-    private Schema schema;
+    private Catalog catalog;
 
-    public BinaryWriter(Schema schema) {
-        this.schema = schema;
+    public BinaryWriter() {
         return;
     }
 
-    // create the initial db file with 0 pages
-    public void initDB() throws IOException {
-        File db = new File(this.schema.getPath() + "database.txt");
-        db.createNewFile();
-        RandomAccessFile raf = new RandomAccessFile(this.schema.getPath() + "database.txt", "rw");
-        raf.writeInt(0);
-        raf.close();
+    public void setCatalog(Catalog catalog) {
+        this.catalog = catalog;
     }
 
-    // write the schema to the catalog file
-    public void writeSchemaToFile(ArrayList<Object> data) throws IOException {
-        String fileName = this.schema.getPath() + "catalog.txt";
-        RandomAccessFile raf = new RandomAccessFile(fileName, "rw");
-        for (Object o : data) {
-            writeSchemaDataType(o, fileName, raf);
+    public void createCatalog(String path, int pageSize) {
+        String fileName = path + "catalog.txt";
+        try (RandomAccessFile raf = new RandomAccessFile(fileName, "rw")) {
+            raf.writeInt(pageSize);
+            raf.writeInt(0);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
-    // writes out the schema attribtues
-    public void writeSchemaDataType(Object o, String fileName, RandomAccessFile raf) throws IOException {
+    public void addSchemaToFile(Schema schema) {
+        String fileName = catalog.getPath() + "catalog.txt";
+        try (RandomAccessFile raf = new RandomAccessFile(fileName, "rw")) {
+
+            // increment tables count
+            raf.seek(4);
+            int numTables = raf.readInt() + 1;
+            schema.setIndex(String.valueOf(numTables - 1));
+            raf.seek(4);
+            raf.writeInt(numTables);
+
+            // go to end of file to write the information
+            int lengthOfSchema = 0;
+            raf.seek(raf.length());
+            long positionOfLength = raf.getFilePointer();
+            raf.writeInt(0); // length of schema in bytes
+
+            raf.writeUTF(schema.getTableName());
+            lengthOfSchema = lengthOfSchema + schema.getTableName().length() + 2;
+
+            // write each attribute to the file
+            for (SchemaAttribute attribute : schema.getAttributes()) {
+
+                lengthOfSchema = lengthOfSchema + 2 + attribute.getAttributeName().length();
+                raf.writeUTF(attribute.getAttributeName());
+
+                if (attribute.isPrimaryKey()) {
+                    raf.writeUTF("primarykey");
+                    lengthOfSchema = lengthOfSchema + 2 + "primarykey".length();
+                }
+
+                lengthOfSchema = lengthOfSchema + 2 + attribute.getTypeAsString().length();
+                raf.writeUTF(attribute.getTypeAsString());
+
+                switch (attribute.getTypeAsString()) {
+                    case "integer":
+                    case "boolean":
+                    case "double":
+                        break;
+                    case "char":
+                    case "varchar":
+                        lengthOfSchema = lengthOfSchema + 4;
+                        raf.writeInt(attribute.getLength());
+                        break;
+                }
+
+            }
+            raf.seek(positionOfLength);
+            raf.writeInt(lengthOfSchema);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    // create the initial db file with 0 pages
+    public void initDB(Schema schema) {
+        String fileName = this.catalog.getPath() + schema.getIndex() + "database.txt";
+
+        File db = new File(fileName);
+        try {
+            db.createNewFile();
+            RandomAccessFile raf = new RandomAccessFile(fileName, "rw");
+            raf.writeInt(0);
+            raf.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // write the catalog to the catalog file
+    public void writeCatalogToFile(ArrayList<Object> data) throws IOException {
+        String fileName = this.catalog.getPath() + "catalog.txt";
+        RandomAccessFile raf = new RandomAccessFile(fileName, "rw");
+        for (Object o : data) {
+            writeCatalogDataType(o, fileName, raf);
+        }
+    }
+
+    // writes out the catalog attribtues
+    public void writeCatalogDataType(Object o, String fileName, RandomAccessFile raf) throws IOException {
         if (o instanceof Integer) {
             raf.writeInt((Integer) o);
         } else if (o instanceof Boolean) {
@@ -55,7 +131,7 @@ public class BinaryWriter {
 
     // write a record to the file. raf should be at the correct spot already
     public void writeRecordToFile(Record record, RandomAccessFile raf) throws IOException {
-        String fileName = this.schema.getPath() + "database.txt";
+        String fileName = this.catalog.getPath() + "database.txt";
 
         int recordSize = record.calculateBytes();
         ArrayList<RecordAttribute> recordData = record.getData();
@@ -87,50 +163,56 @@ public class BinaryWriter {
     }
 
     // given a page, it will write that page to the correct location in the file
-    public void writePage(Page page) throws FileNotFoundException, IOException {
+    public void writePage(Page page) {
+        String fileName = page.getFileName();
 
-        String fileName = this.schema.getPath() + "database.txt";
+        int skipBytes = (page.getPageID() * this.catalog.getPageSize()) + 4;
 
-        int skipBytes = (page.getPageID() * this.schema.getPageSize()) + 4;
+        RandomAccessFile raf;
+        try {
+            raf = new RandomAccessFile(fileName, "rw");
 
-        RandomAccessFile raf = new RandomAccessFile(fileName, "rw");
-        int totalPages = raf.readInt();
-        int oldTotal = totalPages;
+            int totalPages = raf.readInt();
+            int oldTotal = totalPages;
 
-        // if we are adding a new page then we need to increment the total pages
-        if (page.getPageID() >= totalPages) {
-            totalPages = page.getPageID() + 1;
-            raf.seek(0);
-            raf.writeInt(totalPages);
-        }
+            // if we are adding a new page then we need to increment the total pages
+            if (page.getPageID() >= totalPages) {
+                totalPages = page.getPageID() + 1;
+                raf.seek(0);
+                raf.writeInt(totalPages);
+            }
 
-        // if the page to insert is greater than the ammount of pages that are in the db (ex. db have 0 pages but we want to write page 4)
-        // create 4 blank pages and write page 4 after them
-        int blankPageIndex = oldTotal;
-        int blackPageByteLocation = (blankPageIndex * this.schema.getPageSize()) + 4;
-        raf.seek(blackPageByteLocation);
-        while (blankPageIndex < page.getPageID()) {
-            int junkSpace = Util.calculateJunkSpaceSize(new Page(blankPageIndex, new ArrayList<>(), schema),
-                    this.schema.getPageSize());
-            raf.writeInt(blankPageIndex);
+            // if the page to insert is greater than the ammount of pages that are in the db
+            // (ex. db have 0 pages but we want to write page 4)
+            // create 4 blank pages and write page 4 after them
+            int blankPageIndex = oldTotal;
+            int blackPageByteLocation = (blankPageIndex * this.catalog.getPageSize()) + 4;
+            raf.seek(blackPageByteLocation);
+            while (blankPageIndex < page.getPageID()) {
+                int junkSpace = Util.calculateJunkSpaceSize(new Page(blankPageIndex, new ArrayList<>(), catalog, fileName),
+                        this.catalog.getPageSize());
+                raf.writeInt(blankPageIndex);
+                raf.writeInt(junkSpace);
+                byte[] junk = new byte[junkSpace];
+                raf.write(junk);
+                blankPageIndex++;
+            }
+
+            raf.seek(skipBytes);
+
+            // write the pageId, junkspace and record
+            int junkSpace = Util.calculateJunkSpaceSize(page, this.catalog.getPageSize());
+            raf.writeInt(page.getPageID());
             raf.writeInt(junkSpace);
+            for (Record record : page.getRecords()) {
+                writeRecordToFile(record, raf);
+            }
+
             byte[] junk = new byte[junkSpace];
             raf.write(junk);
-            blankPageIndex++;
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-
-        raf.seek(skipBytes);
-
-        // write the pageId, junkspace and record
-        int junkSpace = Util.calculateJunkSpaceSize(page, this.schema.getPageSize());
-        raf.writeInt(page.getPageID());
-        raf.writeInt(junkSpace);
-        for (Record record : page.getRecords()) {
-            writeRecordToFile(record, raf);
-        }
-
-        byte[] junk = new byte[junkSpace];
-        raf.write(junk);
     }
 
     // writes out a records attributes

@@ -10,7 +10,7 @@ public enum Usage {
             select *
             from <name>;"""),
     INSERT_SYNTAX("insert into <name> values <tuples>;"),
-    DISPLAY_SCHEMA_SYNTAX("display schema"),
+    DISPLAY_SCHEMA_SYNTAX("display catalog"),
     DISPLAY_INFO_SYNTAX("display info <name>");
 
     private final String usage;

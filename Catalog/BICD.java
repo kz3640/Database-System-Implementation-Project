@@ -1,25 +1,25 @@
-package Schema;
+package Catalog;
 
 public class BICD implements SchemaAttribute{
     private String attributeName;
-    private Character character;
+    private String typeAsString;
     private boolean isPrimaryKey;
     private boolean notNull;
 
-    public BICD(String attributeName, Character character, boolean isPrimaryKey, boolean notNull) {
+    public BICD(String attributeName, String typeAsString, boolean isPrimaryKey, boolean notNull) {
         this.attributeName = attributeName;
-        this.character = character;
+        this.typeAsString = typeAsString;
         this.isPrimaryKey = isPrimaryKey;
         this.notNull = notNull;
     }
 
     public Class<?> getType() {
-        switch (character) {
-            case 'b':
+        switch (typeAsString) {
+            case "boolean":
                 return boolean.class;
-            case 'i':
+            case "integer":
                 return int.class;
-            case 'd':
+            case "double":
                 return double.class;
             default:
                 return null;
@@ -30,8 +30,8 @@ public class BICD implements SchemaAttribute{
         return -1;
     }
 
-    public Character getLetter() {
-        return this.character;
+    public String getTypeAsString() {
+        return this.typeAsString;
     }
 
     public boolean isPrimaryKey() {
