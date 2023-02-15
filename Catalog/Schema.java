@@ -88,11 +88,25 @@ public class Schema {
                 case "varchar":
                     if (!(recordAttributes.get(index).getType() == String.class)) {
                         return false;
+                    } else {
+                        String recordString = (String) recordAttributes.get(index).getAttribute();
+                        if (schemaAttributes.get(index).getLength() < recordString.length()) {
+                            System.out.println("Varchar of length " + recordString.length()
+                                    + " is too large for length " + schemaAttributes.get(index).getLength());
+                            return false;
+                        }
                     }
                     break;
                 case "char":
                     if (!(recordAttributes.get(index).getType() == Character.class)) {
                         return false;
+                    } else {
+                        String recordString = (String) recordAttributes.get(index).getAttribute();
+                        if (schemaAttributes.get(index).getLength() < recordString.length()) {
+                            System.out.println("Char of length " + recordString.length()
+                                    + " is too large for length " + schemaAttributes.get(index).getLength());
+                            return false;
+                        }
                     }
                     break;
                 case "double":

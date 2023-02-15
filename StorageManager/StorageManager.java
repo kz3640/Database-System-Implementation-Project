@@ -103,7 +103,9 @@ public class StorageManager {
                     break;
                 }
             } else if (primaryKeyData.getType() == Character.class || primaryKeyData.getType() == String.class) {
-                if ((Character) primaryKeyRecord.getAttribute() > (Character) primaryKeyData.getAttribute()) {
+                String s1 = (String) primaryKeyRecord.getAttribute();
+                String s2 = (String) primaryKeyData.getAttribute();
+                if (s1.compareTo(s2) > 0) {
                     shouldBeAdded = true;
                     indexToBeAdded = i;
                     break;
