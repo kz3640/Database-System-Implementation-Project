@@ -1,18 +1,11 @@
 package InputHandler;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Stack;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import javax.sound.midi.Soundbank;
 
 import IO.BinaryWriter;
-import IO.BinaryReader;
 import StorageManager.StorageManager;
 import Catalog.BICD;
 import Catalog.Catalog;
@@ -25,12 +18,10 @@ import Record.RecordAttribute;
 
 public class InputHandler {
     private BinaryWriter writer;
-    private BinaryReader reader;
     private StorageManager storageManager;
 
-    public InputHandler(BinaryWriter writer, BinaryReader reader, StorageManager storageManager) {
+    public InputHandler(BinaryWriter writer, StorageManager storageManager) {
         this.writer = writer;
-        this.reader = reader;
         this.storageManager = storageManager;
         return;
     }

@@ -75,7 +75,6 @@ public class Page {
         return this.catalog.getSchemaByName(tableName);
     }
 
-    // debugging
     public void printPage() {
         int indexOfRecord = 0;
         System.out.println("pageID: " + this.pageId);

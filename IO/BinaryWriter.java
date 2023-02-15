@@ -1,7 +1,6 @@
 package IO;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
@@ -102,30 +101,6 @@ public class BinaryWriter {
             raf.close();
         } catch (IOException e) {
             e.printStackTrace();
-        }
-    }
-
-    // write the catalog to the catalog file
-    public void writeCatalogToFile(ArrayList<Object> data) throws IOException {
-        String fileName = this.catalog.getPath() + "catalog.txt";
-        RandomAccessFile raf = new RandomAccessFile(fileName, "rw");
-        for (Object o : data) {
-            writeCatalogDataType(o, fileName, raf);
-        }
-    }
-
-    // writes out the catalog attribtues
-    public void writeCatalogDataType(Object o, String fileName, RandomAccessFile raf) throws IOException {
-        if (o instanceof Integer) {
-            raf.writeInt((Integer) o);
-        } else if (o instanceof Boolean) {
-            raf.writeBoolean((Boolean) o);
-        } else if (o instanceof Character) {
-            raf.writeChar((Character) o);
-        } else if (o instanceof String) {
-            raf.writeUTF((String) o);
-        } else if (o instanceof Double) {
-            raf.writeDouble((Double) o);
         }
     }
 

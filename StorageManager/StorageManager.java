@@ -10,7 +10,6 @@ import Record.Record;
 import Record.RecordAttribute;
 import Catalog.Catalog;
 import Catalog.Schema;
-import Catalog.SchemaAttribute;
 
 public class StorageManager {
     private Catalog catalog;
@@ -70,17 +69,6 @@ public class StorageManager {
         }
         return data;
     }
-
-    // function to create a catalog then call the buffer to write it to the file
-    // public void createCatalog(String[] input) throws IOException {
-    // // parse insert table command
-    // ArrayList<Object> catalog = addDataToArray(input);
-    // catalog.add(0, this.catalog.getPageSize());
-    // pageBuffer.writeCatalogToFile(catalog);
-    // this.catalog = pageBuffer.getCatalog();
-    // }
-
-    // compare record to catalog to see if it can be entered into the db
 
     // add record into page.
     // return: false -> record doesn't go into page
@@ -237,10 +225,6 @@ public class StorageManager {
     public void writeBuffer() throws IOException {
         pageBuffer.clearBuffer();
     }
-
-    // public void printDB() throws IOException {
-    //     pageBuffer.printDB();
-    // }
 
     public void printBuffer() {
         pageBuffer.printBuffer();

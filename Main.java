@@ -53,7 +53,7 @@ public class Main {
 
         PageBuffer pageBuffer = new PageBuffer(bufferSize, reader, writer, catalog);
         StorageManager storageManager = new StorageManager(pageBuffer, catalog);
-        InputHandler inputHandler = new InputHandler(writer, reader, storageManager);
+        InputHandler inputHandler = new InputHandler(writer, storageManager);
 
         Scanner scan = new Scanner(System.in);
         boolean programRunning = true;

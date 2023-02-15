@@ -1,8 +1,5 @@
 package IO;
 
-import java.io.DataInputStream;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
@@ -35,10 +32,8 @@ public class BinaryReader {
             }
 
             Catalog catalog = new Catalog(path, pageSize, bufferSize);
-            // catalog.setPageSize(pageSize);
 
             int tableIdToRead = 0;
-
             // loop through each table
             while (tableIdToRead < totalTables) {
 
@@ -83,54 +78,11 @@ public class BinaryReader {
             raf.close();
 
             return catalog;
-        } catch (
-
-        IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
 
         return null;
-
-        // ArrayList<SchemaAttribute> attributes = new ArrayList<>();
-        // try (FileInputStream inputStream = new FileInputStream(this.catalog.getPath()
-        // + "catalog.txt")) {
-        // DataInputStream dis = new DataInputStream(inputStream);
-
-        // int pageSize = dis.readInt();
-        // String tableName = dis.readUTF();
-        // while (dis.available() > 0) {
-        // String attrName;
-        // try {
-        // attrName = dis.readUTF();
-        // } catch (IOException e) {
-        // break;
-        // }
-        // char resultChar = dis.readChar();
-        // // isPrimary key
-        // boolean isPrimary = false;
-        // if (resultChar == 'p') {
-        // isPrimary = true;
-        // resultChar = dis.readChar();
-        // }
-
-        // // is string, need length
-        // if (resultChar == 'v') {
-        // int stringLength = dis.readInt();
-        // attributes.add(new Varchar(attrName, stringLength, isPrimary, false));
-        // } else if (resultChar == 'c') {
-        // int stringLength = dis.readInt();
-        // attributes.add(new Char(attrName, stringLength, isPrimary, false));
-        // } else {
-        // attributes.add(new BICD(attrName, resultChar, isPrimary, false));
-        // }
-        // }
-        // this.catalog.setAttributes(attributes);
-        // this.catalog.setTableName(tableName);
-        // return this.catalog;
-        // } catch (IOException e) {
-        // }
-
-        // return null;
     }
 
     // retrieve the total amount of pages stored in the db
@@ -163,9 +115,9 @@ public class BinaryReader {
             int numBytes = (int) Math.ceil(numBits / 8.0);
             byte[] nullBitMap = new byte[numBytes];
             raf.read(nullBitMap);
+            // read null bit map here.
 
             int bitIndex = 0;
-            // read null bit map here.
             for (SchemaAttribute c : schemaAttributes) {
                 if ((nullBitMap[bitIndex / 8] & (1 << (bitIndex % 8))) != 0) {
                     newRecord.addAttributeToData(null);
@@ -244,27 +196,4 @@ public class BinaryReader {
         }
         return records;
     }
-
-    public void printTableInfo(String tableName) {
-
-    }
-
-    // debuggin
-    // public void printDB() throws IOException {
-    // RandomAccessFile raf = new RandomAccessFile(this.catalog.getPath() +
-    // "database.txt", "rw");
-
-    // if (raf.length() == 0) {
-    // System.out.println("db not init");
-    // raf.close();
-    // }
-
-    // int pagesToRead = raf.readInt();
-    // int pagesRead = 0;
-    // while (pagesToRead > pagesRead) {
-    // getPage(pagesRead, fileName).printPage();
-    // pagesRead++;
-    // }
-    // }
-
 }
