@@ -207,6 +207,25 @@ public class StorageManager {
         }
     }
 
+    public boolean isPrimaryKeyUsed(Record record) {
+        Schema schema = this.catalog.getSchemaByName(record.getTableName());
+        int pageIndex = 0;
+        int pagesInTable = this.pageBuffer.getTotalPages(schema);
+        while (true) {
+            if (pagesInTable <= pageIndex)
+                break;
+
+            Page page = this.pageBuffer.getPage(pageIndex, schema);
+
+            if (page.isPrimaryKeyInPage(record))
+                break;
+
+            pageIndex++;
+        }
+
+        return false;
+    }
+
     public void printTableInfo(String tableName) {
         System.out.println();
         Schema schema = this.catalog.getSchemaByName(tableName);

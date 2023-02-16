@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import Catalog.Catalog;
 import Catalog.Schema;
 import Record.Record;
+import Record.RecordAttribute;
 import Util.Util;
 
 public class Page {
@@ -73,6 +74,17 @@ public class Page {
     public Schema getSchema() {
         String tableName = this.catalog.fileNameToTableName(this.fileName);
         return this.catalog.getSchemaByName(tableName);
+    }
+
+    public boolean isPrimaryKeyInPage(Record record) {
+        Schema schema = getSchema();
+        for (Record recordInPage : records) {
+            RecordAttribute primAttr = recordInPage.getData().get(schema.getIndexOfPrimaryKey());
+            RecordAttribute primRecordAttr = record.getData().get(schema.getIndexOfPrimaryKey());
+            if (primAttr.equals(primRecordAttr))
+                return true;
+        }
+        return false;
     }
 
     public void printPage() {
