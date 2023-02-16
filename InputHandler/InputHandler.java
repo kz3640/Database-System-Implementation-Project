@@ -373,6 +373,12 @@ public class InputHandler {
                 return false;
             }
 
+            if (!storageManager.isPrimaryKeyUsed(record)) {
+                System.out.println("Primary key is already in use");
+                return false;
+            }
+
+
             listOfRecords.add(record);
         }
 
