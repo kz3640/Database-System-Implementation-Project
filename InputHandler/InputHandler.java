@@ -111,7 +111,7 @@ public class InputHandler {
 
         int leftIndex = tableNameAndAttributes.indexOf("(");
         int rightIndex = tableNameAndAttributes.lastIndexOf(")");
-        String tableName = tableNameAndAttributes.substring(0, leftIndex);
+        String tableName = tableNameAndAttributes.substring(0, leftIndex).trim();
         String attributes = tableNameAndAttributes.substring(leftIndex + 1, rightIndex);
 
         // must have table name
@@ -316,9 +316,9 @@ public class InputHandler {
     }
 
     private boolean insertRecordCommand(String input) {
-        String[] inputSplitOnSpaces = input.split(" ", 5);
+        String[] inputSplitOnSpaces = input.split(" ", 4);
 
-        if (inputSplitOnSpaces.length != 5) {
+        if (inputSplitOnSpaces.length != 4) {
             System.out.println("invalid insert command");
             return false;
         }
@@ -326,8 +326,10 @@ public class InputHandler {
         String command = inputSplitOnSpaces[0]; // already verified
         String intoKeyWord = inputSplitOnSpaces[1]; // should be "into"
         String tableName = inputSplitOnSpaces[2]; // name of table
-        String valuesKeyWord = inputSplitOnSpaces[3]; // should be "values"
-        String values = inputSplitOnSpaces[4]; // should be a list of values;
+        String valuesKeyWordAndValues = inputSplitOnSpaces[3]; // should be "values"
+        String valuesKeyWord = valuesKeyWordAndValues.substring(0, 6);
+        String values = valuesKeyWordAndValues.substring(6, valuesKeyWordAndValues.length()).trim();
+        // should be a list of values;
 
         if (!intoKeyWord.equals("into")) {
             System.out.println("invalid insert command (into)");
@@ -373,11 +375,10 @@ public class InputHandler {
                 return false;
             }
 
-            if (!storageManager.isPrimaryKeyUsed(record)) {
+            if (storageManager.isPrimaryKeyUsed(record)) {
                 System.out.println("Primary key is already in use");
                 return false;
             }
-
 
             listOfRecords.add(record);
         }
@@ -429,7 +430,6 @@ public class InputHandler {
         this.storageManager.select(args, tableName);
 
     }
-
 
     private void display(String originalString) {
         String input = originalString.substring(0, originalString.length() - 1);
