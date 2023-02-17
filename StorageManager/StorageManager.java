@@ -218,7 +218,7 @@ public class StorageManager {
             Page page = this.pageBuffer.getPage(pageIndex, schema);
 
             if (page.isPrimaryKeyInPage(record))
-                break;
+                return true;
 
             pageIndex++;
         }

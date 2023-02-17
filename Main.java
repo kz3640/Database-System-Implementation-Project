@@ -72,9 +72,29 @@ public class Main {
                 }
                 input.append(line + " ");
             }
-            String finalInput = input.toString().replaceAll("\\s+", " ");
+            String finalInput = removeExtraWhitespace(input.toString());
             programRunning = inputHandler.handleInput(finalInput);
         }
         scan.close();
+    }
+
+    private static String removeExtraWhitespace(String input) {
+        StringBuilder output = new StringBuilder();
+    boolean insideQuotes = false;
+    for (int i = 0; i < input.length(); i++) {
+        char c = input.charAt(i);
+        if (c == '\"') {
+            insideQuotes = !insideQuotes;
+            output.append(c);
+        } else if (c == ' ' && !insideQuotes) {
+            while (i < input.length() - 1 && input.charAt(i + 1) == ' ') {
+                i++;
+            }
+            output.append(' ');
+        } else {
+            output.append(c);
+        }
+    }
+    return output.toString();
     }
 }

@@ -79,8 +79,8 @@ public class Page {
     public boolean isPrimaryKeyInPage(Record record) {
         Schema schema = getSchema();
         for (Record recordInPage : records) {
-            RecordAttribute primAttr = recordInPage.getData().get(schema.getIndexOfPrimaryKey());
-            RecordAttribute primRecordAttr = record.getData().get(schema.getIndexOfPrimaryKey());
+            Object primAttr = recordInPage.getData().get(schema.getIndexOfPrimaryKey()).getAttribute();
+            Object primRecordAttr = record.getData().get(schema.getIndexOfPrimaryKey()).getAttribute();
             if (primAttr.equals(primRecordAttr))
                 return true;
         }
