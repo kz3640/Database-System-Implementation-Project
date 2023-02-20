@@ -73,7 +73,7 @@ public class StorageManager {
     // add record into page.
     // return: false -> record doesn't go into page
     // true -> record was added into page
-    public boolean insertRecordInPage(Page page, Record record, Schema schema) {
+    public boolean insertRecordInPage(Page page, Record record, Schema schema, boolean lastPage) {
         boolean shouldBeAdded = false;
         int indexToBeAdded = 0;
 
@@ -117,6 +117,11 @@ public class StorageManager {
                     break;
                 }
             }
+        }
+
+        if (lastPage) {
+            shouldBeAdded = true;
+            indexToBeAdded = pageRecords.size();
         }
 
         // couldn't find a spot for the primary key so return false
@@ -167,6 +172,8 @@ public class StorageManager {
         this.catalog.getSchemaByName(tableName);
         Schema schema =  this.catalog.getSchemaByName(tableName);
 
+        schema.printSchema();
+
         int pageIndex = 0;
         int pagesInTable = this.pageBuffer.getTotalPages(schema);
         while (true) {
@@ -199,7 +206,7 @@ public class StorageManager {
 
             Page page = this.pageBuffer.getPage(pageIndex, schema);
 
-            if (insertRecordInPage(page, record, schema))
+            if (insertRecordInPage(page, record, schema, pagesInTable - 1 == pageIndex))
                 break;
 
             pageIndex++;

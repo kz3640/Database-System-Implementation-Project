@@ -90,7 +90,6 @@ public class Page {
     public void printPage() {
         int indexOfRecord = 0;
         System.out.println("pageID: " + this.pageId);
-        System.out.println("FileName: " + this.fileName);
         if (this.records.size() == 0) {
             System.out.println("\n page contains no records");
         }

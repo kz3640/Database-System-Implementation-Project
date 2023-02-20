@@ -35,11 +35,6 @@ public class Main {
             System.exit(0);
         }
 
-
-        // sout pageSize no match on launch
-        // fix new page
-        // check if attribute name exists
-        // fix displays
         // remove debug items
 
         BinaryReader reader = new BinaryReader();
@@ -54,8 +49,11 @@ public class Main {
                 System.out.println("Creating new db at " + path);
                 writer.createCatalog(path, pageSize);
             }
+        } else {
+            System.out.println("DB already exist, using predefined page size.");
         }
         catalog = reader.getCatalog(path, pageSize, bufferSize);
+        System.out.println("Page size: " + catalog.getPageSize());
         writer.setCatalog(catalog);
 
         PageBuffer pageBuffer = new PageBuffer(bufferSize, reader, writer, catalog);
