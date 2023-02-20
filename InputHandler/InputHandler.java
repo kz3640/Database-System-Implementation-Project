@@ -37,17 +37,30 @@ public class InputHandler {
             // attrName integer primaryKey
             // attname double
             if (!(attributeProperties.length == 2 || attributeProperties.length == 3)) {
-                System.out.println("Invalid table attributes. (tooManyAttrs)");
+                System.out.println("---ERROR---");
+                System.out.println("Invalid table attributes. (tooManyAttrs)\n");
                 return null;
             }
 
             // make sure primaryKey is in 3rd positio
             if (attributeProperties.length == 3 && !attributeProperties[2].equals("primarykey")) {
-                System.out.println("Invalid table attributes. (invalidPrimaryKey)");
+                System.out.println("---ERROR---");
+                System.out.println("Invalid table attributes. (invalidPrimaryKey)\n");
                 return null;
             }
 
             String attributeName = attributeProperties[0];
+            
+            // check if two attributes have the same name
+            for (SchemaAttribute schemaAttribute : schemaAttributes) {
+                if (attributeName.equals(schemaAttribute.getAttributeName())) {
+                    System.out.println("---ERROR---");
+                    System.out.println("Two attributes have the same name\n");
+                    return null;
+                }
+            }
+
+
             String attributeType = attributeProperties[1];
             boolean validAttributeName = attributeName.matches("[a-zA-Z0-9]+");
             boolean validAttributeType = attributeType
@@ -55,11 +68,13 @@ public class InputHandler {
             boolean isPrimaryKey = attributeProperties.length == 3;
 
             if (!validAttributeName) {
-                System.out.println("Invalid attribute name " + attributeName);
+                System.out.println("---ERROR---");
+                System.out.println("Invalid attribute name " + attributeName + "\n");
                 return null;
             }
             if (!validAttributeType) {
-                System.out.println("Invalid attribute type " + attributeType);
+                System.out.println("---ERROR---");
+                System.out.println("Invalid attribute type " + attributeType + "\n");
                 return null;
             }
 
@@ -116,23 +131,27 @@ public class InputHandler {
 
         // must have table name
         if (tableName.equals("")) {
-            System.out.println("No table name");
+            System.out.println("---ERROR---");
+            System.out.println("No table name\n");
             return false;
         }
         // tableName contains bad characters
         if (!tableName.matches("[a-zA-Z0-9]+")) {
-            System.out.println("Bad table name");
+            System.out.println("---ERROR---");
+            System.out.println("Bad table name\n");
             return false;
         }
         // must have attributes
         if (attributes.equals("")) {
-            System.out.println("No attributes");
+            System.out.println("---ERROR---");
+            System.out.println("No attributes\n");
             return false;
         }
         // must have exactly 1 primary key
         int primaryKeyIndex = attributes.indexOf("primarykey");
         if (!(primaryKeyIndex != -1 && attributes.indexOf("primarykey", primaryKeyIndex + 1) == -1)) {
-            System.out.println("Must be exactly one primary key");
+            System.out.println("---ERROR---");
+            System.out.println("Must be exactly one primary key\n");
             return false;
         }
 
@@ -175,7 +194,8 @@ public class InputHandler {
             if (s.equals("null")) {
                 // null
                 recordData.add(new RecordAttribute(null, null, 0));
-                System.out.println("Null values not handled");
+                System.out.println("---ERROR---");
+                System.out.println("Null values not handled\n");
                 return null;
             } else if (s.startsWith("\"") && s.endsWith("\"")) {
                 // a string
@@ -287,7 +307,8 @@ public class InputHandler {
             s = s.trim();
 
             if (!s.startsWith("(") || !s.endsWith(")")) {
-                System.out.println("String does not have matching parentheses.");
+                System.out.println("---ERROR---");
+                System.out.println("String does not have matching parentheses.\n");
                 return null;
             }
 
@@ -324,7 +345,8 @@ public class InputHandler {
         String[] inputSplitOnSpaces = input.split(" ", 4);
 
         if (inputSplitOnSpaces.length != 4) {
-            System.out.println("invalid insert command");
+            System.out.println("---ERROR---");
+            System.out.println("invalid insert command\n");
             return false;
         }
 
@@ -337,23 +359,27 @@ public class InputHandler {
         // should be a list of values;
 
         if (!intoKeyWord.equals("into")) {
-            System.out.println("invalid insert command (into)");
+            System.out.println("---ERROR---");
+            System.out.println("invalid insert command (into)\n");
             return false;
         }
         if (!valuesKeyWord.equals("values")) {
-            System.out.println("invalid insert command (values)");
+            System.out.println("---ERROR---");
+            System.out.println("invalid insert command (values)\n");
             return false;
         }
 
         // check if table exists.
         if (!this.storageManager.getCatalog().doesTableNameExist(tableName)) {
-            System.out.println("Table name " + tableName + " does not exist");
+            System.out.println("---ERROR---");
+            System.out.println("Table name " + tableName + " does not exist\n");
             return false;
         }
 
         // match parenthesis
         if (!doParenthesisMatch(values, true)) {
-            System.out.println("Invalid parenthesis");
+            System.out.println("---ERROR---");
+            System.out.println("Invalid parenthesis\n");
             return false;
         }
 
@@ -371,20 +397,23 @@ public class InputHandler {
             Record record = convertListToRecord(splitStrings, tableName);
 
             if (record == null) {
-                System.out.println("Parsing error when parsing " + input);
+                System.out.println("---ERROR---");
+                System.out.println("Parsing error when parsing " + input + "\n");
                 wasErrors = true;
                 break;
             }
 
             Schema schema = this.storageManager.getCatalog().getSchemaByName(tableName);
             if (!schema.doesRecordFollowSchema(record)) {
-                System.out.println("Record to insert does not fit into schema");
+                System.out.println("---ERROR---");
+                System.out.println("Record to insert does not fit into schema. \n");
                 wasErrors = true;
                 break;
             }
 
             if (storageManager.isPrimaryKeyUsed(record)) {
-                System.out.println("Primary key is already in use");
+                System.out.println("---ERROR---");
+                System.out.println("Primary key is already in use\n");
                 wasErrors = true;
                 break;
             }
@@ -402,7 +431,7 @@ public class InputHandler {
         String input = originalString.substring(0, originalString.length() - 1).toLowerCase();
 
         if (insertRecordCommand(input)) {
-            System.out.println("SUCCESS!");
+            System.out.println("SUCCESS!\n");
         }
     }
 
@@ -412,12 +441,14 @@ public class InputHandler {
         String[] inputSplitOnSpaces = input.split(" ");
 
         if (inputSplitOnSpaces.length != 4) {
-            System.out.println("Invalid select command");
+            System.out.println("---ERROR---");
+            System.out.println("Invalid select command\n");
             return;
         }
 
         if (!inputSplitOnSpaces[2].equals("from")) {
-            System.out.println("Invalid select command");
+            System.out.println("---ERROR---");
+            System.out.println("Invalid select command\n");
             return;
         }
 
@@ -425,13 +456,15 @@ public class InputHandler {
         String tableName = inputSplitOnSpaces[3];
 
         if (!this.storageManager.getCatalog().doesTableNameExist(tableName)) {
-            System.out.println("Table " + tableName + " not found");
+            System.out.println("---ERROR---");
+            System.out.println("Table " + tableName + " not found\n");
             return;
         }
 
         // TODO: split attributes
         if (!args.equals("*")) {
-            System.out.println("Only * attributes can be fetched");
+            System.out.println("---ERROR---");
+            System.out.println("Only * attributes can be fetched\n");
             return;
         }
 
@@ -483,6 +516,7 @@ public class InputHandler {
     }
 
     public boolean handleInput(String originalString) throws IOException {
+        System.out.println();
         String input = originalString.substring(0, originalString.length() - 1);
         String command = input.split(" ")[0];
 
@@ -509,7 +543,8 @@ public class InputHandler {
                 displayHelp();
                 break;
             default:
-                System.out.println("Unrecognized command. Type 'help;' for a list of commands.");
+                System.out.println("---ERROR---");
+                System.out.println("Unrecognized command. Type 'help;' for a list of commands.\n");
                 break;
         }
 
