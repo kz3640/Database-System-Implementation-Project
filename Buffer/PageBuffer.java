@@ -53,6 +53,7 @@ public class PageBuffer {
         for (int i = 0; i < this.currentBufferSize; i++) {
             Page page = this.pageBuffer.get(i);
             if (page.getPageID() == pageId && page.getFileName().equals(schema.getFileName())) {
+                page.setTime();
                 return page;
             }
         }

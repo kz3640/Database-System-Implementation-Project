@@ -169,9 +169,14 @@ public class InputHandler {
         ArrayList<RecordAttribute> recordData = new ArrayList<RecordAttribute>();
         int index = 0;
         for (String s : input) {
+            if (schema.getAttributes().size() <= index) {
+                return null;
+            }
             if (s.equals("null")) {
                 // null
                 recordData.add(new RecordAttribute(null, null, 0));
+                System.out.println("Null values not handled");
+                return null;
             } else if (s.startsWith("\"") && s.endsWith("\"")) {
                 // a string
                 if (schema.getAttributes().get(index).getTypeAsString() == "char") {
@@ -359,6 +364,7 @@ public class InputHandler {
         }
 
         List<Record> listOfRecords = new ArrayList<>();
+        boolean wasErrors = false;
         for (String string : cleanValuesList) {
             List<String> splitStrings = splitStringIgnoringQuotedSpaces(string);
 
@@ -366,18 +372,21 @@ public class InputHandler {
 
             if (record == null) {
                 System.out.println("Parsing error when parsing " + input);
-                return false;
+                wasErrors = true;
+                break;
             }
 
             Schema schema = this.storageManager.getCatalog().getSchemaByName(tableName);
             if (!schema.doesRecordFollowSchema(record)) {
                 System.out.println("Record to insert does not fit into schema");
-                return false;
+                wasErrors = true;
+                break;
             }
 
             if (storageManager.isPrimaryKeyUsed(record)) {
                 System.out.println("Primary key is already in use");
-                return false;
+                wasErrors = true;
+                break;
             }
 
             listOfRecords.add(record);
@@ -386,7 +395,7 @@ public class InputHandler {
         for (Record record : listOfRecords) {
             this.storageManager.addRecord(record);
         }
-        return true;
+        return !wasErrors;
     }
 
     private void insertRecord(String originalString) {
@@ -437,7 +446,7 @@ public class InputHandler {
         String[] inputArray = input.split(" ");
 
         // display catalog
-        if (inputArray.length == 2 && inputArray[1].equals("catalog")) {
+        if (inputArray.length == 2 && inputArray[1].equals("schema")) {
             Catalog catalog = storageManager.getCatalog();
             catalog.printCatalog();
             return;
@@ -491,7 +500,7 @@ public class InputHandler {
                 storageManager.writeBuffer();
                 break;
             case "quit":
-                storageManager.printBuffer();
+                storageManager.writeBuffer();
                 return false;
             case "display":
                 display(originalString);
