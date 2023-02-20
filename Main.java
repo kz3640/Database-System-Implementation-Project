@@ -35,6 +35,13 @@ public class Main {
             System.exit(0);
         }
 
+
+        // sout pageSize no match on launch
+        // fix new page
+        // check if attribute name exists
+        // fix displays
+        // remove debug items
+
         BinaryReader reader = new BinaryReader();
         BinaryWriter writer = new BinaryWriter();
         Catalog catalog;
@@ -80,21 +87,22 @@ public class Main {
 
     private static String removeExtraWhitespace(String input) {
         StringBuilder output = new StringBuilder();
-    boolean insideQuotes = false;
-    for (int i = 0; i < input.length(); i++) {
-        char c = input.charAt(i);
-        if (c == '\"') {
-            insideQuotes = !insideQuotes;
-            output.append(c);
-        } else if (c == ' ' && !insideQuotes) {
-            while (i < input.length() - 1 && input.charAt(i + 1) == ' ') {
-                i++;
+        input = input.trim();
+        boolean insideQuotes = false;
+        for (int i = 0; i < input.length(); i++) {
+            char c = input.charAt(i);
+            if (c == '\"') {
+                insideQuotes = !insideQuotes;
+                output.append(c);
+            } else if (c == ' ' && !insideQuotes) {
+                while (i < input.length() - 1 && input.charAt(i + 1) == ' ') {
+                    i++;
+                }
+                output.append(' ');
+            } else {
+                output.append(c);
             }
-            output.append(' ');
-        } else {
-            output.append(c);
         }
-    }
-    return output.toString();
+        return output.toString();
     }
 }

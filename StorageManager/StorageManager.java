@@ -170,7 +170,6 @@ public class StorageManager {
         int pageIndex = 0;
         int pagesInTable = this.pageBuffer.getTotalPages(schema);
         while (true) {
-
             if (pagesInTable <= pageIndex)
                 break;
 
