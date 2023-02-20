@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import Record.Record;
+import StorageManager.StorageManager;
 
 public class Catalog {
     private String path;
@@ -29,7 +30,8 @@ public class Catalog {
     public Schema getSchemaByName(String tableName) {
         Schema schema = this.tables.get(tableName);
         if (schema == null) {
-            System.out.println("Table name " + tableName + " not found.");
+            System.out.println("---ERROR---");
+            System.out.println("Table name " + tableName + " not found.\n");
         }
         return schema;
     }
@@ -58,7 +60,7 @@ public class Catalog {
         return null;
     }
 
-    public void printCatalog() {
+    public void printCatalog(StorageManager sm) {
         System.out.println();
         System.out.println("DB Location: " + path);
         System.out.println("Page Size: " + this.pageSize);
@@ -67,8 +69,10 @@ public class Catalog {
 
         for (Schema schema : this.tables.values()) {
             System.out.println();
-            schema.printSchema();
+            sm.printTableInfo(schema.getTableName());
             System.out.println();
         }
+
+        System.out.println("\nSUCCESS!");
     }
 }
