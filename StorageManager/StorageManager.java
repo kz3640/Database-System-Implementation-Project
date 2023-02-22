@@ -119,7 +119,7 @@ public class StorageManager {
             }
         }
 
-        if (lastPage) {
+        if (lastPage && !shouldBeAdded) {
             shouldBeAdded = true;
             indexToBeAdded = pageRecords.size();
         }
