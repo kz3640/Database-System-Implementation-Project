@@ -94,7 +94,7 @@ public class Page {
             System.out.println("\n page contains no records");
         }
         for (Record record : this.records) {
-            System.out.print("\n record" + indexOfRecord + ": ");
+            System.out.print("\n record " + indexOfRecord + ": ");
             record.printRecord();
             indexOfRecord++;
         }

@@ -49,6 +49,9 @@ public class Schema {
         for (SchemaAttribute attribute : this.attributes) {
             String attributeLine = "    " + attribute.getAttributeName();
             attributeLine = attributeLine + " " + attribute.getTypeAsString();
+            if (attribute.getLength() > 0) {
+                attributeLine = attributeLine + " " +  attribute.getLength() + " ";
+            }
             if (attribute.isPrimaryKey()) {
                 attributeLine += " primarykey";
             }
