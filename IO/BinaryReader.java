@@ -182,18 +182,4 @@ public class BinaryReader {
             return null;
         }
     }
-
-    public int getRecordAmmount(Schema schema) {
-        int records = 0;
-        int pageIndex = 0;
-        int pagesInTable = this.getTotalPages(schema.getFileName());
-        while (true) {
-            if (pagesInTable == pageIndex)
-                break;
-            Page page = this.getPage(pageIndex, schema);
-            records += page.getRecords().size();
-            pageIndex++;
-        }
-        return records;
-    }
 }

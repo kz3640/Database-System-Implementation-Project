@@ -481,10 +481,11 @@ public class InputHandler {
         // display catalog
         if (inputArray.length == 2 && inputArray[1].equals("schema")) {
             Catalog catalog = storageManager.getCatalog();
-            catalog.printCatalog();
+            catalog.printCatalog(storageManager);
             return;
         } else if (inputArray.length == 3 && inputArray[1].equals("info")) {
-            storageManager.printTableInfo(inputArray[2]);
+            if (storageManager.printTableInfo(inputArray[2]))
+                System.out.println("SUCCESS!");
             return;
         }
 

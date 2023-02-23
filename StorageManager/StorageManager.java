@@ -232,20 +232,18 @@ public class StorageManager {
         return false;
     }
 
-    public void printTableInfo(String tableName) {
+    public boolean printTableInfo(String tableName) {
         System.out.println();
         Schema schema = this.catalog.getSchemaByName(tableName);
         if (schema == null) {
-            System.out.println();
-            return;
+            return false;
         }
         schema.printSchema();
 
         System.out.println("Pages: " + pageBuffer.getTotalPages(schema));
-        System.out.println("Records: "+ pageBuffer.getRecordAmmount(schema));
+        System.out.println("Records: "+ pageBuffer.getRecordAmmount(schema, tableName));
 
-        System.out.println();
-        
+        return true;
     }
 
     // empty buffer

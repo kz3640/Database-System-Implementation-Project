@@ -125,8 +125,22 @@ public class PageBuffer {
         return highestPageInBuffer >= pagesInDb ? highestPageInBuffer : pagesInDb;
     }
 
-    public int getRecordAmmount(Schema schema) {
-        return this.reader.getRecordAmmount(schema);
+    public int getRecordAmmount(Schema schema, String tableName) {
+        int recordAmmount = 0;
+
+        int pageIndex = 0;
+        int pagesInTable = this.getTotalPages(schema);
+        while (true) {
+            if (pagesInTable <= pageIndex)
+                break;
+
+            Page page = this.getPage(pageIndex, schema);
+
+            recordAmmount += page.records.size();
+
+            pageIndex++;
+        }
+        return recordAmmount;
     }
 
     // debugging
