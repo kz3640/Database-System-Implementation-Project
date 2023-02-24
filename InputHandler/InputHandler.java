@@ -42,7 +42,7 @@ public class InputHandler {
                 return null;
             }
 
-            // make sure primaryKey is in 3rd positio
+            // make sure primaryKey is in 3rd position
             if (attributeProperties.length == 3 && !attributeProperties[2].equals("primarykey")) {
                 System.out.println("---ERROR---");
                 System.out.println("Invalid table attributes. (invalidPrimaryKey)\n");
@@ -85,7 +85,9 @@ public class InputHandler {
                 case "integer":
                 case "double":
                 case "boolean":
-                    schemaAttribute = new BICD(attributeName, attributeType, isPrimaryKey, false);
+
+                    // HOOKUP
+                    schemaAttribute = new BICD(attributeName, attributeType, isPrimaryKey, true, false);
                     schemaAttributes.add(schemaAttribute);
                     continue;
                 default:
@@ -93,13 +95,17 @@ public class InputHandler {
                         int leftIndex = attributeType.indexOf("(");
                         int rightIndex = attributeType.indexOf(")");
                         int length = Integer.parseInt(attributeType.substring(leftIndex + 1, rightIndex));
-                        schemaAttribute = new Char(attributeName, length, isPrimaryKey, false);
+
+                        // HOOKUP
+                        schemaAttribute = new Char(attributeName, length, isPrimaryKey, false, false);
                         schemaAttributes.add(schemaAttribute);
                     } else if (attributeType.matches("varchar\\([0-9]+\\)")) {
                         int leftIndex = attributeType.indexOf("(");
                         int rightIndex = attributeType.indexOf(")");
                         int length = Integer.parseInt(attributeType.substring(leftIndex + 1, rightIndex));
-                        schemaAttribute = new Varchar(attributeName, length, isPrimaryKey, false);
+
+                        // HOOKUP
+                        schemaAttribute = new Varchar(attributeName, length, isPrimaryKey, false, true);
                         schemaAttributes.add(schemaAttribute);
                     }
             }
@@ -128,6 +134,11 @@ public class InputHandler {
         int rightIndex = tableNameAndAttributes.lastIndexOf(")");
         String tableName = tableNameAndAttributes.substring(0, leftIndex).trim();
         String attributes = tableNameAndAttributes.substring(leftIndex + 1, rightIndex);
+
+
+
+
+
 
         // must have table name
         if (tableName.equals("")) {

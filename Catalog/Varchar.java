@@ -3,14 +3,16 @@ package Catalog;
 public class Varchar implements SchemaAttribute {
     private String attributeName;
     private int length;
-    private boolean isPrimaryKey;;
-    private boolean notNull;;
+    private boolean isPrimaryKey;
+    private boolean notNull;
+    private boolean isUnique;
 
-    public Varchar(String attributeName, int length, boolean isPrimaryKey, boolean notNull) {
+    public Varchar(String attributeName, int length, boolean isPrimaryKey, boolean notNull, boolean isUnique) {
         this.attributeName = attributeName;
         this.length = length;
         this.isPrimaryKey = isPrimaryKey;
         this.notNull = notNull;
+        this.isUnique = isUnique;
     }
 
     public int getLength() {
@@ -35,5 +37,9 @@ public class Varchar implements SchemaAttribute {
 
     public boolean isNotNull() {
         return notNull;
+    }
+
+    public boolean isUnique() {
+        return isUnique;
     }
 }

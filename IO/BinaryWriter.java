@@ -64,6 +64,14 @@ public class BinaryWriter {
                     raf.writeUTF("primarykey");
                     lengthOfSchema = lengthOfSchema + 2 + "primarykey".length();
                 }
+                if (attribute.isUnique()) {
+                    raf.writeUTF("unique");
+                    lengthOfSchema = lengthOfSchema + 2 + "unique".length();
+                }
+                if (attribute.isNotNull()) {
+                    raf.writeUTF("notnull");
+                    lengthOfSchema = lengthOfSchema + 2 + "notnull".length();
+                }
 
                 lengthOfSchema = lengthOfSchema + 2 + attribute.getTypeAsString().length();
                 raf.writeUTF(attribute.getTypeAsString());

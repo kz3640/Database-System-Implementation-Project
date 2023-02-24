@@ -5,12 +5,14 @@ public class Char implements SchemaAttribute {
     private int length;
     private boolean isPrimaryKey;;
     private boolean notNull;;
+    private boolean isUnique;;
 
-    public Char(String attributeName, int length, boolean isPrimaryKey, boolean notNull) {
+    public Char(String attributeName, int length, boolean isPrimaryKey, boolean notNull, boolean isUnique) {
         this.attributeName = attributeName;
         this.length = length;
         this.isPrimaryKey = isPrimaryKey;
         this.notNull = notNull;
+        this.isUnique = isUnique;
     }
 
     public int getLength() {
@@ -35,5 +37,10 @@ public class Char implements SchemaAttribute {
 
     public boolean isNotNull() {
         return notNull;
+    }
+
+
+    public boolean isUnique() {
+        return isUnique;
     }
 }

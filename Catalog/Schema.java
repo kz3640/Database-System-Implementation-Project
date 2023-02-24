@@ -55,6 +55,12 @@ public class Schema {
             if (attribute.isPrimaryKey()) {
                 attributeLine += " primarykey";
             }
+            if (attribute.isNotNull()) {
+                attributeLine += " not null";
+            }
+            if (attribute.isPrimaryKey()) {
+                attributeLine += " unique";
+            }
             System.out.println(attributeLine);
         }
     }
