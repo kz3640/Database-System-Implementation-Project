@@ -80,8 +80,10 @@ public class InputHandler {
             boolean isPrimaryKey = false;
             boolean isUnique = false;
             boolean isNotNull = false;
+            boolean isDefault = false;
+            Object defaultValue = null;
 
-            if (attributeProperties.length > 2){
+            if (attributeProperties.length == 3 ){
                 constraintType1 = checkAttributeConstraints(attributeProperties[2]);
                 switch(constraintType1){
                     case 1: isPrimaryKey = true;
@@ -95,6 +97,17 @@ public class InputHandler {
             }
 
             if (attributeProperties.length == 4){
+                constraintType1 = checkAttributeConstraints(attributeProperties[2]);
+                switch(constraintType1){
+                    case 1: isPrimaryKey = true;
+                            break;
+                    case 2: isUnique = true;
+                            break;
+                    case 3: isNotNull = true;
+                            break;
+                    case 4: isDefault = true;
+                    default: return null;
+                }
                 constraintType2 = checkAttributeConstraints(attributeProperties[3]);
                 switch(constraintType2){
                     case 1: if (isPrimaryKey){
@@ -118,7 +131,9 @@ public class InputHandler {
                             }
                             isNotNull = true;
                             break;
-                    default: return null;
+                    default: if(isDefault)
+                                defaultValue = attributeProperties[3];
+                            return null;
                 }
             }
             
@@ -130,7 +145,7 @@ public class InputHandler {
                 case "double":
                 case "boolean":
 
-                    schemaAttribute = new BICD(attributeName, attributeType, isPrimaryKey, isNotNull, isUnique);
+                    schemaAttribute = new BICD(attributeName, attributeType, isPrimaryKey, isNotNull, isUnique, defaultValue);
                     schemaAttributes.add(schemaAttribute);
                     continue;
                 default:
@@ -139,14 +154,14 @@ public class InputHandler {
                         int rightIndex = attributeType.indexOf(")");
                         int length = Integer.parseInt(attributeType.substring(leftIndex + 1, rightIndex));
 
-                        schemaAttribute = new Char(attributeName, length, isPrimaryKey, isNotNull, isUnique);
+                        schemaAttribute = new Char(attributeName, length, isPrimaryKey, isNotNull, isUnique, defaultValue);
                         schemaAttributes.add(schemaAttribute);
                     } else if (attributeType.matches("varchar\\([0-9]+\\)")) {
                         int leftIndex = attributeType.indexOf("(");
                         int rightIndex = attributeType.indexOf(")");
                         int length = Integer.parseInt(attributeType.substring(leftIndex + 1, rightIndex));
 
-                        schemaAttribute = new Varchar(attributeName, length, isPrimaryKey, isNotNull, isUnique);
+                        schemaAttribute = new Varchar(attributeName, length, isPrimaryKey, isNotNull, isUnique, defaultValue);
                         schemaAttributes.add(schemaAttribute);
                     }
             }
@@ -159,6 +174,7 @@ public class InputHandler {
             case "primarykey": return 1;
             case "unique": return 2;
             case "notnull": return 3;
+            case "default": return 4;
             default: 
                     System.out.println("---ERROR---");
                     System.out.println("Invalid attribute constraint " + constraint + "\n");
