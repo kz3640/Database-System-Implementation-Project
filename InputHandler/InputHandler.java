@@ -185,10 +185,58 @@ public class InputHandler {
         return true;
     }
 
+    private boolean dropTableCommand(String input) {
+        String[] inputSplitOnSpaces = input.split(" ", 3);
+
+        String command = inputSplitOnSpaces[0]; // already verified
+        String tableKeyWord = inputSplitOnSpaces[1]; // should be "table"
+        String tableName = inputSplitOnSpaces[2]; // foo(attr1 x x ....)
+
+        // if it's not table, return
+        if (!tableKeyWord.equals("table"))
+            return false;
+
+        // must have table name
+        if (tableName.equals("")) {
+            System.out.println("---ERROR---");
+            System.out.println("No table name\n");
+            return false;
+        }
+        // tableName contains bad characters
+        if (!tableName.matches("[a-zA-Z0-9]+")) {
+            System.out.println("---ERROR---");
+            System.out.println("Bad table name\n");
+            return false;
+        }
+
+        Schema schema = this.storageManager.getCatalog().getSchemaByName(tableName);
+
+        if (!storageManager.dropSchema(schema))
+            return false;
+
+        return true;
+    }
+
     private void createTable(String originalString) {
         String input = originalString.substring(0, originalString.length() - 1).toLowerCase();
 
         if (createTableCommand(input)) {
+            System.out.println("SUCCESS!");
+        }
+    }
+
+    private void dropTable(String originalString) {
+        String input = originalString.substring(0, originalString.length() - 1).toLowerCase();
+
+        if (dropTableCommand(input)) {
+            System.out.println("SUCCESS!");
+        }
+    }
+
+    private void alterTable(String originalString) {
+        String input = originalString.substring(0, originalString.length() - 1).toLowerCase();
+
+        if (alterTableCommand(input)) {
             System.out.println("SUCCESS!");
         }
     }
@@ -530,6 +578,12 @@ public class InputHandler {
         switch (command) {
             case "create":
                 createTable(originalString);
+                break;
+            case "drop":
+                dropTable(originalString);
+                break;
+            case "alter":
+                alterTable(originalString);
                 break;
             case "select":
                 select(originalString);
