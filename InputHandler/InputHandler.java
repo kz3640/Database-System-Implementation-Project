@@ -33,19 +33,13 @@ public class InputHandler {
             attributeString = attributeString.trim();
             String[] attributeProperties = attributeString.split(" ");
 
-            // length must be 2 or 3 or invalid.
+            // length must be 2 or 3 or 4 or invalid.
+            // attrName char(10) unique notnull
             // attrName integer primaryKey
             // attname double
-            if (!(attributeProperties.length == 2 || attributeProperties.length == 3)) {
+            if (!(attributeProperties.length == 2 || attributeProperties.length == 3 || attributeProperties.length == 4)) {
                 System.out.println("---ERROR---");
                 System.out.println("Invalid table attributes. (tooManyAttrs)\n");
-                return null;
-            }
-
-            // make sure primaryKey is in 3rd position
-            if (attributeProperties.length == 3 && !attributeProperties[2].equals("primarykey")) {
-                System.out.println("---ERROR---");
-                System.out.println("Invalid table attributes. (invalidPrimaryKey)\n");
                 return null;
             }
 
@@ -60,24 +54,74 @@ public class InputHandler {
                 }
             }
 
-
-            String attributeType = attributeProperties[1];
             boolean validAttributeName = attributeName.matches("[a-zA-Z0-9]+");
-            boolean validAttributeType = attributeType
-                    .matches("integer|double|boolean|char\\([0-9]+\\)|varchar\\([0-9]+\\)");
-            boolean isPrimaryKey = attributeProperties.length == 3;
 
             if (!validAttributeName) {
                 System.out.println("---ERROR---");
                 System.out.println("Invalid attribute name " + attributeName + "\n");
                 return null;
             }
+
+
+            String attributeType = attributeProperties[1];
+
+            boolean validAttributeType = attributeType
+                    .matches("integer|double|boolean|char\\([0-9]+\\)|varchar\\([0-9]+\\)");
+
             if (!validAttributeType) {
                 System.out.println("---ERROR---");
                 System.out.println("Invalid attribute type " + attributeType + "\n");
                 return null;
             }
 
+            int constraintType1 = 0;
+            int constraintType2 = 0;    
+            
+            boolean isPrimaryKey = false;
+            boolean isUnique = false;
+            boolean isNotNull = false;
+
+            if (attributeProperties.length > 2){
+                constraintType1 = checkAttributeConstraints(attributeProperties[2]);
+                switch(constraintType1){
+                    case 1: isPrimaryKey = true;
+                            break;
+                    case 2: isUnique = true;
+                            break;
+                    case 3: isNotNull = true;
+                            break;
+                    default: return null;
+                }
+            }
+
+            if (attributeProperties.length == 4){
+                constraintType2 = checkAttributeConstraints(attributeProperties[3]);
+                switch(constraintType2){
+                    case 1: if (isPrimaryKey){
+                                System.out.println("---ERROR---");
+                                System.out.println("Invalid: primarykey constraint entered twice.\n");
+                                return null;
+                            }
+                            isPrimaryKey = true;
+                            break;
+                    case 2: if (isUnique){
+                                System.out.println("---ERROR---");
+                                System.out.println("Invalid: unique constraint entered twice.\n");
+                                return null;
+                            }
+                            isUnique = true;
+                            break;
+                    case 3: if (isNotNull){
+                                System.out.println("---ERROR---");
+                                System.out.println("Invalid: notnull constraint entered twice.\n");
+                                return null;
+                            }
+                            isNotNull = true;
+                            break;
+                    default: return null;
+                }
+            }
+            
             // format is good to go. Add each to the array
 
             SchemaAttribute schemaAttribute;
@@ -86,8 +130,7 @@ public class InputHandler {
                 case "double":
                 case "boolean":
 
-                    // HOOKUP
-                    schemaAttribute = new BICD(attributeName, attributeType, isPrimaryKey, true, false);
+                    schemaAttribute = new BICD(attributeName, attributeType, isPrimaryKey, isNotNull, isUnique);
                     schemaAttributes.add(schemaAttribute);
                     continue;
                 default:
@@ -96,21 +139,31 @@ public class InputHandler {
                         int rightIndex = attributeType.indexOf(")");
                         int length = Integer.parseInt(attributeType.substring(leftIndex + 1, rightIndex));
 
-                        // HOOKUP
-                        schemaAttribute = new Char(attributeName, length, isPrimaryKey, false, false);
+                        schemaAttribute = new Char(attributeName, length, isPrimaryKey, isNotNull, isUnique);
                         schemaAttributes.add(schemaAttribute);
                     } else if (attributeType.matches("varchar\\([0-9]+\\)")) {
                         int leftIndex = attributeType.indexOf("(");
                         int rightIndex = attributeType.indexOf(")");
                         int length = Integer.parseInt(attributeType.substring(leftIndex + 1, rightIndex));
 
-                        // HOOKUP
-                        schemaAttribute = new Varchar(attributeName, length, isPrimaryKey, false, true);
+                        schemaAttribute = new Varchar(attributeName, length, isPrimaryKey, isNotNull, isUnique);
                         schemaAttributes.add(schemaAttribute);
                     }
             }
         }
         return schemaAttributes;
+    }
+
+    private int checkAttributeConstraints(String constraint){
+        switch(constraint){
+            case "primarykey": return 1;
+            case "unique": return 2;
+            case "notnull": return 3;
+            default: 
+                    System.out.println("---ERROR---");
+                    System.out.println("Invalid attribute constraint " + constraint + "\n");
+                    return 0;
+            }
     }
 
     private boolean createTableCommand(String input) {
