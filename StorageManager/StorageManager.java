@@ -241,6 +241,12 @@ public class StorageManager {
         return false;
     }
 
+    public boolean dropTable(Schema schema) {
+        pageBuffer.writer.deleteFile(schema);
+        pageBuffer.writer.removeTableFromCatalog(schema);
+        return true;
+    }
+
     public boolean printTableInfo(String tableName) {
         System.out.println();
         Schema schema = this.catalog.getSchemaByName(tableName);
@@ -249,6 +255,7 @@ public class StorageManager {
         }
         schema.printSchema();
 
+        System.out.println("Index: " + schema.getIndex());
         System.out.println("Pages: " + pageBuffer.getTotalPages(schema));
         System.out.println("Records: "+ pageBuffer.getRecordAmmount(schema, tableName));
 

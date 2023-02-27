@@ -94,7 +94,6 @@ public class BinaryWriter {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
     }
 
     // create the initial db file with 0 pages
@@ -172,7 +171,8 @@ public class BinaryWriter {
             int blackPageByteLocation = (blankPageIndex * this.catalog.getPageSize()) + 4;
             raf.seek(blackPageByteLocation);
             while (blankPageIndex < page.getPageID()) {
-                int junkSpace = Util.calculateJunkSpaceSize(new Page(blankPageIndex, new ArrayList<>(), catalog, fileName),
+                int junkSpace = Util.calculateJunkSpaceSize(
+                        new Page(blankPageIndex, new ArrayList<>(), catalog, fileName),
                         this.catalog.getPageSize());
                 raf.writeInt(blankPageIndex);
                 raf.writeInt(junkSpace);
@@ -217,5 +217,92 @@ public class BinaryWriter {
         } else if (attribute.getType() == double.class) {
             raf.writeDouble((Double) attribute.getAttribute());
         }
+    }
+
+    public void deleteFile(Schema schema) {
+        String fileName = this.catalog.getPath() + schema.getIndex() + "database.txt";
+        System.out.println(fileName);
+        File file = new File(fileName);
+        file.delete();
+    }
+
+    public void removeTableFromCatalog(Schema schema) {
+        String tableNameToDelete = schema.getTableName();
+        String fileName = this.catalog.getPath() + "catalog.txt";
+
+        try (RandomAccessFile raf = new RandomAccessFile(fileName, "rw")) {
+            raf.readInt(); // pageSize, we ignore
+            int totalTables = raf.readInt();
+
+            int tableIdToRead = 0;
+            // loop through each table
+            while (tableIdToRead < totalTables) {
+
+                long pointer = raf.getFilePointer();
+                int sizeOfSchema = raf.readInt();
+                String tableName = raf.readUTF();
+                int remainingBytesInSchema = sizeOfSchema - tableName.length() - 2; // need to add the length of the string back
+                byte[] bytesToSkipOver = new byte[remainingBytesInSchema];
+
+                if (tableName.equals(tableNameToDelete)) {
+                    int schemaSize = sizeOfSchema + 4;
+                    // remove schema from catalog file
+                    removeBytesFromFile(raf, fileName, pointer, schemaSize);
+
+                    // update table count
+                    raf.seek(4);
+                    raf.writeInt(totalTables - 1);
+                    catalog.dropTable(schema); // remove it from the catalog
+
+                    // need to rename every file that comes after the one we deleted.
+                    renameFilesAfter(tableIdToRead, totalTables);
+                    this.catalog.balanceTableIndex(tableIdToRead);
+
+                    return;
+                }
+
+                raf.read(bytesToSkipOver);
+                tableIdToRead++;
+            }
+            raf.close();
+
+            System.out.println("Not Found");
+            return;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void renameFilesAfter(int index, int numFiles) {
+        while (index < numFiles) {
+            String oldFileName = this.catalog.getPath() + index + "database.txt";
+            String newFileName = this.catalog.getPath() + (index - 1) + "database.txt";
+            File oldFile = new File(oldFileName);
+            File newFile = new File(newFileName);
+            oldFile.renameTo(newFile);
+            index++;
+        }
+
+    }
+
+    private void removeBytesFromFile(RandomAccessFile raf, String filePath, long position, int numBytesToRemove) throws IOException {
+        raf.seek(position + numBytesToRemove);
+
+        int sizeOfSchema = raf.readInt();
+        System.out.println(sizeOfSchema);
+
+        String tableName = raf.readUTF();
+        System.out.println(tableName);
+
+        raf.seek(position + numBytesToRemove);
+
+        // shift the remaining bytes to the left
+        byte[] remainingBytes = new byte[(int) ((int) raf.length() - numBytesToRemove - position)];
+        raf.read(remainingBytes);
+        raf.seek(position);
+        raf.write(remainingBytes);
+
+        // truncate the file to remove the bytes we don't want
+        raf.setLength(raf.length() - numBytesToRemove);
     }
 }

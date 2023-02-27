@@ -211,7 +211,7 @@ public class InputHandler {
 
         Schema schema = this.storageManager.getCatalog().getSchemaByName(tableName);
 
-        if (!storageManager.dropSchema(schema))
+        if (!storageManager.dropTable(schema))
             return false;
 
         return true;
