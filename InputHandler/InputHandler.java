@@ -217,6 +217,89 @@ public class InputHandler {
         return true;
     }
 
+    private boolean alterTableCommand(String input) {
+        String[] inputSplitOnSpaces = input.split(" ", 5);
+
+        String command = inputSplitOnSpaces[0]; // already verified
+        String tableKeyWord = inputSplitOnSpaces[1]; // should be "table"
+        String tableName = inputSplitOnSpaces[2]; // foo
+        String actionKeyWord = inputSplitOnSpaces[3]; // add or drop
+        String attribute = inputSplitOnSpaces[4]; // attribute name
+
+        // if it's not table, return
+        if (!tableKeyWord.equals("table"))
+            return false;
+
+        // must have table name
+        if (tableName.equals("")) {
+            System.out.println("---ERROR---");
+            System.out.println("No table name\n");
+            return false;
+        }
+        // tableName contains bad characters
+        if (!tableName.matches("[a-zA-Z0-9]+")) {
+            System.out.println("---ERROR---");
+            System.out.println("Bad table name\n");
+            return false;
+        }
+
+        Schema schema = this.storageManager.getCatalog().getSchemaByName(tableName); // making sure table exists
+
+        // must have an attribute
+        if (attribute.equals("")) {
+            System.out.println("---ERROR---");
+            System.out.println("No attributes\n");
+            return false;
+        }
+
+        String[] attList = attribute.split(" ");
+        
+        ArrayList<SchemaAttribute> currentAtt = schema.getAttributes();
+
+        switch(actionKeyWord){
+            case "add": if (attList.length < 2) // attribute must be defined
+                            return false;
+
+                        String[] nAttribute = {attribute};
+                        ArrayList<SchemaAttribute> nSchemaAttribute = getAttributeList(nAttribute);    
+
+                        if (currentAtt.contains(nSchemaAttribute.get(0))) // attribute must not exist in the table
+                            return false;
+
+                        currentAtt.add(nSchemaAttribute.get(0)); // add new schema attribute to list of existing schema attributes
+
+                        Schema naSchema = new Schema(tableName, currentAtt, this.storageManager.getCatalog());
+
+                        if (!storageManager.alterSchema(naSchema))
+                            return false;
+                        break;
+
+            case "drop": if (attList.length < 2) // must only contain existing attribute's name
+                            return false;
+
+                        int idx = -1;
+                        for(int i = 0; i < currentAtt.size(); i++) {
+                            if (currentAtt.get(i).getAttributeName().equals(actionKeyWord)) // attribute exists in the table
+                                idx = i;
+                        }
+
+                        if (idx == -1) // attribute does not exist in the table
+                            return false;
+
+                        currentAtt.remove(idx);
+                        Schema ndSchema = new Schema(tableName, currentAtt, this.storageManager.getCatalog());
+                        
+                        if (!storageManager.alterSchema(ndSchema))
+                            return false;
+                        break;
+
+            default:
+                    return false;
+        }
+
+        return true;
+    }
+
     private void createTable(String originalString) {
         String input = originalString.substring(0, originalString.length() - 1).toLowerCase();
 
