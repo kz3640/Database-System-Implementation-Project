@@ -132,30 +132,29 @@ public class BinaryReader {
             int bitIndex = 0;
             for (SchemaAttribute c : schemaAttributes) {
                 if ((nullBitMap[bitIndex / 8] & (1 << (bitIndex % 8))) != 0) {
-                    newRecord.addAttributeToData(null);
-                    bitIndex++;
-                    continue;
-                }
-                switch (c.getTypeAsString()) {
-                    case "integer":
-                        newRecord.addAttributeToData(new RecordAttribute(int.class, raf.readInt(), 0));
-                        break;
-                    case "boolean":
-                        newRecord.addAttributeToData(new RecordAttribute(boolean.class, raf.readBoolean(), 0));
-                        break;
-                    case "char":
-                        String charString = raf.readUTF();
-                        int charsToStrip = raf.readInt();
-                        charString = charString.substring(0, charString.length() - charsToStrip);
-                        newRecord.addAttributeToData(
-                                new RecordAttribute(Character.class, charString, charString.length()));
-                        break;
-                    case "varchar":
-                        newRecord.addAttributeToData(new RecordAttribute(String.class, raf.readUTF(), 0));
-                        break;
-                    case "double":
-                        newRecord.addAttributeToData(new RecordAttribute(double.class, raf.readDouble(), 0));
-                        break;
+                    newRecord.addAttributeToData(new RecordAttribute(null, null, 0));
+                } else {
+                    switch (c.getTypeAsString()) {
+                        case "integer":
+                            newRecord.addAttributeToData(new RecordAttribute(int.class, raf.readInt(), 0));
+                            break;
+                        case "boolean":
+                            newRecord.addAttributeToData(new RecordAttribute(boolean.class, raf.readBoolean(), 0));
+                            break;
+                        case "char":
+                            String charString = raf.readUTF();
+                            int charsToStrip = raf.readInt();
+                            charString = charString.substring(0, charString.length() - charsToStrip);
+                            newRecord.addAttributeToData(
+                                    new RecordAttribute(Character.class, charString, charString.length()));
+                            break;
+                        case "varchar":
+                            newRecord.addAttributeToData(new RecordAttribute(String.class, raf.readUTF(), 0));
+                            break;
+                        case "double":
+                            newRecord.addAttributeToData(new RecordAttribute(double.class, raf.readDouble(), 0));
+                            break;
+                    }
                 }
                 bitIndex++;
             }

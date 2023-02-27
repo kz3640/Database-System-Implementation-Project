@@ -36,10 +36,10 @@ public class Varchar implements SchemaAttribute {
     }
 
     public boolean isNotNull() {
-        return notNull;
+        return this.notNull;
     }
 
     public boolean isUnique() {
-        return isUnique;
+        return this.isUnique;
     }
 }

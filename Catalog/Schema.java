@@ -58,7 +58,7 @@ public class Schema {
             if (attribute.isNotNull()) {
                 attributeLine += " not null";
             }
-            if (attribute.isPrimaryKey()) {
+            if (attribute.isUnique()) {
                 attributeLine += " unique";
             }
             System.out.println(attributeLine);
@@ -73,6 +73,19 @@ public class Schema {
         return this.indexOfPrimaryKey;
     }
 
+    public ArrayList<Integer> getIndexesOfUniqueValues() {
+        ArrayList<Integer> indexesOfUniqueValues = new ArrayList<>();
+
+        int i = 0;
+        for (SchemaAttribute attribute : this.attributes) {
+            if (attribute.isUnique())
+                indexesOfUniqueValues.add(i);
+            i++;
+        }
+
+        return indexesOfUniqueValues;
+    }
+
     public boolean doesRecordFollowSchema(Record record) {
         ArrayList<SchemaAttribute> schemaAttributes = this.getAttributes();
 
@@ -82,24 +95,37 @@ public class Schema {
         }
 
         for (int index = 0; index < recordAttributes.size(); index++) {
-            if (schemaAttributes.get(index).isNotNull() && recordAttributes.get(index) == null) {
+            
+            if (schemaAttributes.get(index).isPrimaryKey() &&  recordAttributes.get(index).getAttribute() == null) {
+                System.out.println("---ERROR---");
+                System.out.println("Primary key attribute can't be null");
                 return false;
             }
-            if (!schemaAttributes.get(index).isNotNull() && recordAttributes.get(index) == null) {
+            if (schemaAttributes.get(index).isNotNull() && recordAttributes.get(index).getAttribute() == null) {
+                System.out.println("---ERROR---");
+                System.out.println("Attribute is null and can't be");
+                return false;
+            }
+            if (!schemaAttributes.get(index).isNotNull() && recordAttributes.get(index).getAttribute() == null) {
                 continue;
             }
             switch (schemaAttributes.get(index).getTypeAsString()) {
                 case "integer":
                     if (!(recordAttributes.get(index).getType() == int.class)) {
+                        System.out.println("---ERROR---");
+                        System.out.println("Record does not fit the scehma");
                         return false;
                     }
                     break;
                 case "varchar":
                     if (!(recordAttributes.get(index).getType() == String.class)) {
+                        System.out.println("---ERROR---");
+                        System.out.println("Record does not fit the scehma");
                         return false;
                     } else {
                         String recordString = (String) recordAttributes.get(index).getAttribute();
                         if (schemaAttributes.get(index).getLength() < recordString.length()) {
+                            System.out.println("---ERROR---");
                             System.out.println("Varchar of length " + recordString.length()
                                     + " is too large for length " + schemaAttributes.get(index).getLength());
                             return false;
@@ -108,10 +134,13 @@ public class Schema {
                     break;
                 case "char":
                     if (!(recordAttributes.get(index).getType() == Character.class)) {
+                        System.out.println("---ERROR---");
+                        System.out.println("Record does not fit the scehma");
                         return false;
                     } else {
                         String recordString = (String) recordAttributes.get(index).getAttribute();
                         if (schemaAttributes.get(index).getLength() < recordString.length()) {
+                            System.out.println("---ERROR---");
                             System.out.println("Char of length " + recordString.length()
                                     + " is too large for length " + schemaAttributes.get(index).getLength());
                             return false;
@@ -120,11 +149,15 @@ public class Schema {
                     break;
                 case "double":
                     if (!(recordAttributes.get(index).getType() == double.class)) {
+                        System.out.println("---ERROR---");
+                        System.out.println("Record does not fit the scehma");
                         return false;
                     }
                     break;
                 case "boolean":
                     if (!(recordAttributes.get(index).getType() == boolean.class)) {
+                        System.out.println("---ERROR---");
+                        System.out.println("Record does not fit the scehma");
                         return false;
                     }
                     break;

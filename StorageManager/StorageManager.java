@@ -213,7 +213,7 @@ public class StorageManager {
         }
     }
 
-    public boolean isPrimaryKeyUsed(Record record) {
+    public boolean doesRecordFollowConstraints(Record record, String tableName) {
         Schema schema = this.catalog.getSchemaByName(record.getTableName());
         int pageIndex = 0;
         int pagesInTable = this.pageBuffer.getTotalPages(schema);
@@ -223,8 +223,17 @@ public class StorageManager {
 
             Page page = this.pageBuffer.getPage(pageIndex, schema);
 
-            if (page.isPrimaryKeyInPage(record))
+            if (page.isPrimaryKeyInPage(record)) {
+                System.out.println("---ERROR---");
+                System.out.println("Primary key is already in use\n");
                 return true;
+            }
+            
+            if (!page.isUniqueValueUnique(record)) {
+                System.out.println("---ERROR---");
+                System.out.println("Value is not unique is already in use\n");
+                return true;
+            }
 
             pageIndex++;
         }

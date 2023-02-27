@@ -205,9 +205,8 @@ public class InputHandler {
             if (s.equals("null")) {
                 // null
                 recordData.add(new RecordAttribute(null, null, 0));
-                System.out.println("---ERROR---");
-                System.out.println("Null values not handled\n");
-                return null;
+                index++;
+                continue;
             } else if (s.startsWith("\"") && s.endsWith("\"")) {
                 // a string
                 if (schema.getAttributes().get(index).getTypeAsString() == "char") {
@@ -416,15 +415,11 @@ public class InputHandler {
 
             Schema schema = this.storageManager.getCatalog().getSchemaByName(tableName);
             if (!schema.doesRecordFollowSchema(record)) {
-                System.out.println("---ERROR---");
-                System.out.println("Record to insert does not fit into schema. \n");
                 wasErrors = true;
                 break;
             }
 
-            if (storageManager.isPrimaryKeyUsed(record)) {
-                System.out.println("---ERROR---");
-                System.out.println("Primary key is already in use\n");
+            if (storageManager.doesRecordFollowConstraints(record, tableName)) {
                 wasErrors = true;
                 break;
             }

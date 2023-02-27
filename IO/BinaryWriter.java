@@ -124,8 +124,8 @@ public class BinaryWriter {
 
         // null bit map.
         for (int i = 0; i < numBits; i++) {
-            Object o = recordData.get(i);
-            if (o == null) {
+            RecordAttribute o = recordData.get(i);
+            if (o.getAttribute() == null) {
                 nullBitMap[i / 8] |= (1 << (i % 8));
             }
         }
