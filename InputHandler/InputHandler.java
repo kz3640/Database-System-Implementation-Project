@@ -84,6 +84,7 @@ public class InputHandler {
             boolean isDefault = false;
             String defaultValue = null;
 
+            System.out.println(attributeProperties.length);
             if (attributeProperties.length == 3) {
                 constraintType1 = checkAttributeConstraints(attributeProperties[2]);
                 switch (constraintType1) {
@@ -224,8 +225,6 @@ public class InputHandler {
             case "default":
                 return 4;
             default:
-                System.out.println("---ERROR---");
-                System.out.println("Invalid attribute constraint " + constraint + "\n");
                 return 0;
         }
     }
@@ -366,7 +365,7 @@ public class InputHandler {
 
         String[] attList = attribute.split(" ");
 
-        ArrayList<SchemaAttribute> currentAtt = schema.getAttributes();
+        ArrayList<SchemaAttribute> currentAtt = new ArrayList<>(schema.getAttributes());
 
         switch (actionKeyWord) {
             case "add":
@@ -387,8 +386,9 @@ public class InputHandler {
                                                          // attributes
 
                 Schema naSchema = new Schema(tableName, currentAtt, this.storageManager.getCatalog());
+                naSchema.setIndex(schema.getIndex());
 
-                if (!storageManager.alterSchema(naSchema))
+                if (!storageManager.alterAddSchema(schema, naSchema))
                     return false;
                 break;
 
@@ -407,8 +407,9 @@ public class InputHandler {
 
                 currentAtt.remove(idx);
                 Schema ndSchema = new Schema(tableName, currentAtt, this.storageManager.getCatalog());
+                ndSchema.setIndex(schema.getIndex());
 
-                if (!storageManager.alterSchema(ndSchema))
+                if (!storageManager.alterDropSchema(schema, ndSchema))
                     return false;
                 break;
 
@@ -646,6 +647,8 @@ public class InputHandler {
         List<String> valuesList = splitStringByParen(values);
         List<String> cleanValuesList = formatStringList(valuesList);
         if (cleanValuesList == null) {
+            System.out.println("---ERROR---");
+            System.out.println("Not Clean\n");
             return false;
         }
 
@@ -678,7 +681,7 @@ public class InputHandler {
         }
 
         for (Record record : listOfRecords) {
-            this.storageManager.addRecord(record);
+            this.storageManager.addRecord(record, this.storageManager.getCatalog().getSchemaByName(record.getTableName()));
         }
         return !wasErrors;
     }

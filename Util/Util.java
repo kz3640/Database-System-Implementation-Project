@@ -25,7 +25,7 @@ public class Util {
     }
 
     public static Object convertToType(String attributeType, String attributeValue) {
-        if (attributeValue.equals("null")) {
+        if (attributeValue == null) {
             return null;
         }
         switch (attributeType) {

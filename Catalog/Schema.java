@@ -1,5 +1,6 @@
 package Catalog;
 
+import java.io.File;
 import java.util.ArrayList;
 
 import Record.RecordAttribute;
@@ -50,7 +51,7 @@ public class Schema {
             String attributeLine = "    " + attribute.getAttributeName();
             attributeLine = attributeLine + " " + attribute.getTypeAsString();
             if (attribute.getLength() > 0) {
-                attributeLine = attributeLine + " " +  attribute.getLength() + " ";
+                attributeLine = attributeLine + " " + attribute.getLength() + " ";
             }
             if (attribute.isPrimaryKey()) {
                 attributeLine += " primarykey";
@@ -94,12 +95,14 @@ public class Schema {
 
         ArrayList<RecordAttribute> recordAttributes = record.getData();
         if (recordAttributes.size() != schemaAttributes.size()) {
+            System.out.println("---ERROR---");
+            System.out.println("Invalid record attribute ammount");
             return false;
         }
 
         for (int index = 0; index < recordAttributes.size(); index++) {
-            
-            if (schemaAttributes.get(index).isPrimaryKey() &&  recordAttributes.get(index).getAttribute() == null) {
+
+            if (schemaAttributes.get(index).isPrimaryKey() && recordAttributes.get(index).getAttribute() == null) {
                 System.out.println("---ERROR---");
                 System.out.println("Primary key attribute can't be null");
                 return false;
@@ -169,5 +172,20 @@ public class Schema {
             }
         }
         return true;
+    }
+
+    public void remove() {
+        String fileName = this.catalog.getPath() + this.index + "database.txt";
+        File file = new File(fileName);
+        file.delete();
+    }
+
+    public void convertToTemp() {
+        String oldFileName = this.catalog.getPath() + this.index + "database.txt";
+        this.index = "-1";
+        String newFileName = this.catalog.getPath() + this.index + "database.txt";
+        File oldFile = new File(oldFileName);
+        File newFile = new File(newFileName);
+        oldFile.renameTo(newFile);
     }
 }

@@ -10,6 +10,7 @@ import Record.Record;
 import Record.RecordAttribute;
 import Catalog.Catalog;
 import Catalog.Schema;
+import Catalog.SchemaAttribute;
 
 public class StorageManager {
     private Catalog catalog;
@@ -150,7 +151,7 @@ public class StorageManager {
         while (true) {
             if (pageIndex <= page.getPageID())
                 break;
-            Page pageToUpdate = this.pageBuffer.getPage(pageIndex, page.getSchema());
+            Page pageToUpdate = this.pageBuffer.getPage(pageIndex, page.getSchema(), true);
             pageToUpdate.incrementPageID();
             pageIndex--;
         }
@@ -180,7 +181,7 @@ public class StorageManager {
             if (pagesInTable <= pageIndex)
                 break;
 
-            Page page = this.pageBuffer.getPage(pageIndex, schema);
+            Page page = this.pageBuffer.getPage(pageIndex, schema, true);
 
             page.printPage();
 
@@ -189,7 +190,7 @@ public class StorageManager {
     }
 
     // add record to db
-    public void addRecord(Record record) {
+    public void addRecord(Record record, Schema schema) {
         // create new file if doesn't exist
         File db = new File(this.catalog.getFileOfRecord(record));
         try {
@@ -197,14 +198,13 @@ public class StorageManager {
         } catch (IOException e) {
         }
 
-        Schema schema = this.catalog.getSchemaByName(record.getTableName());
         int pageIndex = 0;
         int pagesInTable = this.pageBuffer.getTotalPages(schema);
         while (true) {
             if (pagesInTable <= pageIndex)
                 pageBuffer.createNewPage(schema);
 
-            Page page = this.pageBuffer.getPage(pageIndex, schema);
+            Page page = this.pageBuffer.getPage(pageIndex, schema, true);
 
             if (insertRecordInPage(page, record, schema, pagesInTable - 1 == pageIndex))
                 break;
@@ -221,7 +221,7 @@ public class StorageManager {
             if (pagesInTable <= pageIndex)
                 break;
 
-            Page page = this.pageBuffer.getPage(pageIndex, schema);
+            Page page = this.pageBuffer.getPage(pageIndex, schema, true);
 
             if (page.isPrimaryKeyInPage(record)) {
                 System.out.println("---ERROR---");
@@ -231,7 +231,7 @@ public class StorageManager {
 
             if (!page.isUniqueValueUnique(record)) {
                 System.out.println("---ERROR---");
-                System.out.println("Value is not unique is already in use\n");
+                System.out.println("Value is not unique\n");
                 return true;
             }
 
@@ -242,26 +242,66 @@ public class StorageManager {
     }
 
     public boolean dropTable(Schema schema) {
+        pageBuffer.removeSchemaFromBuffer(schema);
         pageBuffer.writer.deleteFile(schema);
         pageBuffer.writer.removeTableFromCatalog(schema);
         return true;
     }
 
-    public boolean alterSchema(Schema newSchema) {
+    private Record convertRecord(Schema oldSchema, Schema newSchema, Record record) {
+        ArrayList<RecordAttribute> recordAttributes = record.getData();
 
+        ArrayList<String> oldAttrs = new ArrayList<>();
+
+        for (SchemaAttribute oldSchemaAttribute : oldSchema.getAttributes()) {
+            oldAttrs.add(oldSchemaAttribute.getAttributeName());
+        }
+
+        for (SchemaAttribute newSchemaAttribute : newSchema.getAttributes()) {
+            String newAttrName = newSchemaAttribute.getAttributeName();
+            if (!oldAttrs.contains(newAttrName)) {
+                RecordAttribute newAttribute = new RecordAttribute(newSchemaAttribute.getType(),
+                        newSchemaAttribute.getDefault(), newSchemaAttribute.getLength());
+                recordAttributes.add(newAttribute);
+            }
+        }
+
+        return new Record(recordAttributes, newSchema.getTableName());
+    }
+
+    public boolean alterAddSchema(Schema oldSchema, Schema newSchema) {
         newSchema.printSchema();
-        
-        // we need to completely remake the db
-        // while we do this we either remove the value or
-        
-        // we need to update the file that stores the schema
 
+        pageBuffer.clearBuffer();
+        oldSchema.convertToTemp();
+        pageBuffer.writer.initDB(newSchema);
 
-        // we need to remove the schema from the catalog and replace it with the
-        // good one
-        // this.catalog.updateSchema(newSchema);
+        // loop over every page
+        int pageIndex = 0;
+        int pagesInTable = this.pageBuffer.getTotalPages(oldSchema);
+        while (true) {
+            if (pagesInTable <= pageIndex) // done
+                break;
 
-        
+            Page page = this.pageBuffer.getPage(pageIndex, oldSchema, false);
+            ArrayList<Record> convertedRecords = new ArrayList<>();
+            for (Record record : page.getRecords()) {
+                Record newRecord = convertRecord(oldSchema, newSchema, record);
+                convertedRecords.add(newRecord);
+            }
+            for (Record record : convertedRecords) {
+                addRecord(record, newSchema);
+            }
+            pageIndex++;
+        }
+
+        oldSchema.remove();
+        this.catalog.addSchema(newSchema);
+        this.pageBuffer.writer.alterTable(newSchema);
+        return true;
+    }
+
+    public boolean alterDropSchema(Schema oldSchema, Schema newSchema) {
         return true;
     }
 
