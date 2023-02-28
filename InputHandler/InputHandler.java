@@ -388,28 +388,34 @@ public class InputHandler {
                 Schema naSchema = new Schema(tableName, currentAtt, this.storageManager.getCatalog());
                 naSchema.setIndex(schema.getIndex());
 
-                if (!storageManager.alterAddSchema(schema, naSchema))
+                if (!storageManager.alterSchema(schema, naSchema))
                     return false;
                 break;
 
             case "drop":
-                if (attList.length < 2) // must only contain existing attribute's name
+                if (attList.length != 1) {
+                    System.out.println("---ERROR---");
+                    System.out.println("drop command not valid");
                     return false;
+                } // must only contain existing attribute's name
 
                 int idx = -1;
                 for (int i = 0; i < currentAtt.size(); i++) {
-                    if (currentAtt.get(i).getAttributeName().equals(actionKeyWord)) // attribute exists in the table
+                    if (currentAtt.get(i).getAttributeName().equals(attList[0])) // attribute exists in the table
                         idx = i;
                 }
 
-                if (idx == -1) // attribute does not exist in the table
+                if (idx == -1) {
+                    System.out.println("---ERROR---");
+                    System.out.println("Attribute not found");
                     return false;
+                } // attribute does not exist in the table
 
                 currentAtt.remove(idx);
                 Schema ndSchema = new Schema(tableName, currentAtt, this.storageManager.getCatalog());
                 ndSchema.setIndex(schema.getIndex());
 
-                if (!storageManager.alterDropSchema(schema, ndSchema))
+                if (!storageManager.alterSchema(schema, ndSchema))
                     return false;
                 break;
 

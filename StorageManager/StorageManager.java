@@ -251,25 +251,41 @@ public class StorageManager {
     private Record convertRecord(Schema oldSchema, Schema newSchema, Record record) {
         ArrayList<RecordAttribute> recordAttributes = record.getData();
 
-        ArrayList<String> oldAttrs = new ArrayList<>();
+        if (oldSchema.getAttributes().size() > newSchema.getAttributes().size()) {
+            ArrayList<String> newAttrs = new ArrayList<>();
+            for (SchemaAttribute newSchemaAttribute : newSchema.getAttributes()) {
+                newAttrs.add(newSchemaAttribute.getAttributeName());
+            }
 
-        for (SchemaAttribute oldSchemaAttribute : oldSchema.getAttributes()) {
-            oldAttrs.add(oldSchemaAttribute.getAttributeName());
-        }
-
-        for (SchemaAttribute newSchemaAttribute : newSchema.getAttributes()) {
-            String newAttrName = newSchemaAttribute.getAttributeName();
-            if (!oldAttrs.contains(newAttrName)) {
-                RecordAttribute newAttribute = new RecordAttribute(newSchemaAttribute.getType(),
-                        newSchemaAttribute.getDefault(), newSchemaAttribute.getLength());
-                recordAttributes.add(newAttribute);
+            // add new attribute to record
+            for (SchemaAttribute oldSchemaAttribute : oldSchema.getAttributes()) {
+                String oldAttrName = oldSchemaAttribute.getAttributeName();
+                if (!newAttrs.contains(oldAttrName)) {
+                    recordAttributes.remove(oldSchema.getAttributes().indexOf(oldSchemaAttribute));
+                }
+            }
+    
+        } else {
+            ArrayList<String> oldAttrs = new ArrayList<>();
+            for (SchemaAttribute oldSchemaAttribute : oldSchema.getAttributes()) {
+                oldAttrs.add(oldSchemaAttribute.getAttributeName());
+            }
+    
+            // add new attribute to record
+            for (SchemaAttribute newSchemaAttribute : newSchema.getAttributes()) {
+                String newAttrName = newSchemaAttribute.getAttributeName();
+                if (!oldAttrs.contains(newAttrName)) {
+                    RecordAttribute newAttribute = new RecordAttribute(newSchemaAttribute.getType(),
+                            newSchemaAttribute.getDefault(), newSchemaAttribute.getLength());
+                    recordAttributes.add(newAttribute);
+                }
             }
         }
 
         return new Record(recordAttributes, newSchema.getTableName());
     }
 
-    public boolean alterAddSchema(Schema oldSchema, Schema newSchema) {
+    public boolean alterSchema(Schema oldSchema, Schema newSchema) {
         newSchema.printSchema();
 
         pageBuffer.clearBuffer();
