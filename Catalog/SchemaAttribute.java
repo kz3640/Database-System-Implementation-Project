@@ -13,4 +13,6 @@ public interface SchemaAttribute {
     public String getAttributeName();
 
     public boolean isUnique();
+
+    public Object getDefault();
 }

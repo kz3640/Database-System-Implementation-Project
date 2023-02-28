@@ -170,7 +170,7 @@ public class StorageManager {
 
     public void select(String args, String tableName) {
         this.catalog.getSchemaByName(tableName);
-        Schema schema =  this.catalog.getSchemaByName(tableName);
+        Schema schema = this.catalog.getSchemaByName(tableName);
 
         schema.printSchema();
 
@@ -228,7 +228,7 @@ public class StorageManager {
                 System.out.println("Primary key is already in use\n");
                 return true;
             }
-            
+
             if (!page.isUniqueValueUnique(record)) {
                 System.out.println("---ERROR---");
                 System.out.println("Value is not unique is already in use\n");
@@ -247,6 +247,24 @@ public class StorageManager {
         return true;
     }
 
+    public boolean alterSchema(Schema newSchema) {
+
+        newSchema.printSchema();
+        
+        // we need to completely remake the db
+        // while we do this we either remove the value or
+        
+        // we need to update the file that stores the schema
+
+
+        // we need to remove the schema from the catalog and replace it with the
+        // good one
+        // this.catalog.updateSchema(newSchema);
+
+        
+        return true;
+    }
+
     public boolean printTableInfo(String tableName) {
         System.out.println();
         Schema schema = this.catalog.getSchemaByName(tableName);
@@ -257,7 +275,7 @@ public class StorageManager {
 
         System.out.println("Index: " + schema.getIndex());
         System.out.println("Pages: " + pageBuffer.getTotalPages(schema));
-        System.out.println("Records: "+ pageBuffer.getRecordAmmount(schema, tableName));
+        System.out.println("Records: " + pageBuffer.getRecordAmmount(schema, tableName));
 
         return true;
     }

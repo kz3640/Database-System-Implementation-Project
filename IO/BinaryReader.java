@@ -69,14 +69,14 @@ public class BinaryReader {
                     // is string, need length
                     if (attrType.equals("varchar")) {
                         int stringLength = raf.readInt();
-                        attributes.add(new Varchar(attrName, stringLength, isPrimary, notNull, isUnique));
+                        attributes.add(new Varchar(attrName, stringLength, isPrimary, notNull, isUnique, null));
                         bytesRead = bytesRead + 4;
                     } else if (attrType.equals("char")) {
                         int stringLength = raf.readInt();
-                        attributes.add(new Char(attrName, stringLength, isPrimary, notNull, isUnique));
+                        attributes.add(new Char(attrName, stringLength, isPrimary, notNull, isUnique, null));
                         bytesRead = bytesRead + 4;
                     } else {
-                        attributes.add(new BICD(attrName, attrType, isPrimary, notNull, isUnique));
+                        attributes.add(new BICD(attrName, attrType, isPrimary, notNull, isUnique, null));
                     }
                 }
                 Schema schema = new Schema(tableName, attributes, catalog);

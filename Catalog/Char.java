@@ -3,16 +3,18 @@ package Catalog;
 public class Char implements SchemaAttribute {
     private String attributeName;
     private int length;
-    private boolean isPrimaryKey;;
-    private boolean notNull;;
-    private boolean isUnique;;
+    private boolean isPrimaryKey;
+    private boolean notNull;
+    private boolean isUnique;
+    private String defaultValue;
 
-    public Char(String attributeName, int length, boolean isPrimaryKey, boolean notNull, boolean isUnique) {
+    public Char(String attributeName, int length, boolean isPrimaryKey, boolean notNull, boolean isUnique, String defaultValue) {
         this.attributeName = attributeName;
         this.length = length;
         this.isPrimaryKey = isPrimaryKey;
         this.notNull = notNull;
         this.isUnique = isUnique;
+        this.defaultValue = defaultValue;
     }
 
     public int getLength() {
@@ -39,8 +41,11 @@ public class Char implements SchemaAttribute {
         return notNull;
     }
 
-
     public boolean isUnique() {
         return isUnique;
+    }
+
+    public Object getDefault() {
+        return this.defaultValue;
     }
 }

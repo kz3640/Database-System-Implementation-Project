@@ -61,6 +61,9 @@ public class Schema {
             if (attribute.isUnique()) {
                 attributeLine += " unique";
             }
+            if (attribute.getDefault() != null) {
+                attributeLine += " default: " + attribute.getDefault();
+            }
             System.out.println(attributeLine);
         }
     }

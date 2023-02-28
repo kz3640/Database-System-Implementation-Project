@@ -7,6 +7,7 @@ import java.util.Stack;
 
 import IO.BinaryWriter;
 import StorageManager.StorageManager;
+import Util.Util;
 import Catalog.BICD;
 import Catalog.Catalog;
 import Catalog.Char;
@@ -37,14 +38,15 @@ public class InputHandler {
             // attrName char(10) unique notnull
             // attrName integer primaryKey
             // attname double
-            if (!(attributeProperties.length == 2 || attributeProperties.length == 3 || attributeProperties.length == 4)) {
+            if (!(attributeProperties.length == 2 || attributeProperties.length == 3
+                    || attributeProperties.length == 4)) {
                 System.out.println("---ERROR---");
                 System.out.println("Invalid table attributes. (tooManyAttrs)\n");
                 return null;
             }
 
             String attributeName = attributeProperties[0];
-            
+
             // check if two attributes have the same name
             for (SchemaAttribute schemaAttribute : schemaAttributes) {
                 if (attributeName.equals(schemaAttribute.getAttributeName())) {
@@ -62,7 +64,6 @@ public class InputHandler {
                 return null;
             }
 
-
             String attributeType = attributeProperties[1];
 
             boolean validAttributeType = attributeType
@@ -75,68 +76,94 @@ public class InputHandler {
             }
 
             int constraintType1 = 0;
-            int constraintType2 = 0;    
-            
+            int constraintType2 = 0;
+
             boolean isPrimaryKey = false;
             boolean isUnique = false;
             boolean isNotNull = false;
             boolean isDefault = false;
-            Object defaultValue = null;
+            String defaultValue = null;
 
-            if (attributeProperties.length == 3 ){
+            if (attributeProperties.length == 3) {
                 constraintType1 = checkAttributeConstraints(attributeProperties[2]);
-                switch(constraintType1){
-                    case 1: isPrimaryKey = true;
-                            break;
-                    case 2: isUnique = true;
-                            break;
-                    case 3: isNotNull = true;
-                            break;
-                    default: return null;
+                switch (constraintType1) {
+                    case 1:
+                        isPrimaryKey = true;
+                        break;
+                    case 2:
+                        isUnique = true;
+                        break;
+                    case 3:
+                        isNotNull = true;
+                        break;
+                    case 4:
+                        isDefault = true;
+                    default:
+                        System.out.println("---ERROR---");
+                        System.out.println("Constraint " + attributeProperties[2] + " does not exist./n");
+                        return null;
                 }
             }
 
-            if (attributeProperties.length == 4){
+            if (attributeProperties.length == 4) {
                 constraintType1 = checkAttributeConstraints(attributeProperties[2]);
-                switch(constraintType1){
-                    case 1: isPrimaryKey = true;
-                            break;
-                    case 2: isUnique = true;
-                            break;
-                    case 3: isNotNull = true;
-                            break;
-                    case 4: isDefault = true;
-                    default: return null;
+                switch (constraintType1) {
+                    case 1:
+                        isPrimaryKey = true;
+                        break;
+                    case 2:
+                        isUnique = true;
+                        break;
+                    case 3:
+                        isNotNull = true;
+                        break;
+                    case 4:
+                        isDefault = true;
+                        break;
+                    default:
+                        System.out.println("---ERROR---");
+                        System.out.println("Constraint " + attributeProperties[2] + " does not exist./n");
+                        return null;
                 }
                 constraintType2 = checkAttributeConstraints(attributeProperties[3]);
-                switch(constraintType2){
-                    case 1: if (isPrimaryKey){
-                                System.out.println("---ERROR---");
-                                System.out.println("Invalid: primarykey constraint entered twice.\n");
-                                return null;
-                            }
-                            isPrimaryKey = true;
-                            break;
-                    case 2: if (isUnique){
-                                System.out.println("---ERROR---");
-                                System.out.println("Invalid: unique constraint entered twice.\n");
-                                return null;
-                            }
-                            isUnique = true;
-                            break;
-                    case 3: if (isNotNull){
-                                System.out.println("---ERROR---");
-                                System.out.println("Invalid: notnull constraint entered twice.\n");
-                                return null;
-                            }
-                            isNotNull = true;
-                            break;
-                    default: if(isDefault)
-                                defaultValue = attributeProperties[3];
+                switch (constraintType2) {
+                    case 1:
+                        if (isPrimaryKey) {
+                            System.out.println("---ERROR---");
+                            System.out.println("Invalid: primarykey constraint entered twice.\n");
                             return null;
+                        }
+                        isPrimaryKey = true;
+                        break;
+                    case 2:
+                        if (isUnique) {
+                            System.out.println("---ERROR---");
+                            System.out.println("Invalid: unique constraint entered twice.\n");
+                            return null;
+                        }
+                        isUnique = true;
+                        break;
+                    case 3:
+                        if (isNotNull) {
+                            System.out.println("---ERROR---");
+                            System.out.println("Invalid: notnull constraint entered twice.\n");
+                            return null;
+                        }
+                        isNotNull = true;
+                        break;
+                    default:
+                        if (isDefault) {
+                            defaultValue = attributeProperties[3];
+                            if (!Util.doesStringFitType(attributeType, defaultValue)) {
+                                System.out.println("---ERROR---");
+                                System.out.println("Invalid: default valid is not correct type.\n");
+                                return null;
+                            }
+                        }
+                        break;
                 }
             }
-            
+
             // format is good to go. Add each to the array
 
             SchemaAttribute schemaAttribute;
@@ -144,8 +171,13 @@ public class InputHandler {
                 case "integer":
                 case "double":
                 case "boolean":
-
-                    schemaAttribute = new BICD(attributeName, attributeType, isPrimaryKey, isNotNull, isUnique, defaultValue);
+                    schemaAttribute = new BICD(
+                            attributeName,
+                            attributeType,
+                            isPrimaryKey,
+                            isNotNull,
+                            isUnique,
+                            Util.convertToType(attributeType, defaultValue));
                     schemaAttributes.add(schemaAttribute);
                     continue;
                 default:
@@ -154,14 +186,26 @@ public class InputHandler {
                         int rightIndex = attributeType.indexOf(")");
                         int length = Integer.parseInt(attributeType.substring(leftIndex + 1, rightIndex));
 
-                        schemaAttribute = new Char(attributeName, length, isPrimaryKey, isNotNull, isUnique, defaultValue);
+                        schemaAttribute = new Char(
+                                attributeName,
+                                length,
+                                isPrimaryKey,
+                                isNotNull,
+                                isUnique,
+                                defaultValue);
                         schemaAttributes.add(schemaAttribute);
                     } else if (attributeType.matches("varchar\\([0-9]+\\)")) {
                         int leftIndex = attributeType.indexOf("(");
                         int rightIndex = attributeType.indexOf(")");
                         int length = Integer.parseInt(attributeType.substring(leftIndex + 1, rightIndex));
 
-                        schemaAttribute = new Varchar(attributeName, length, isPrimaryKey, isNotNull, isUnique, defaultValue);
+                        schemaAttribute = new Varchar(
+                                attributeName,
+                                length,
+                                isPrimaryKey,
+                                isNotNull,
+                                isUnique,
+                                defaultValue);
                         schemaAttributes.add(schemaAttribute);
                     }
             }
@@ -169,17 +213,21 @@ public class InputHandler {
         return schemaAttributes;
     }
 
-    private int checkAttributeConstraints(String constraint){
-        switch(constraint){
-            case "primarykey": return 1;
-            case "unique": return 2;
-            case "notnull": return 3;
-            case "default": return 4;
-            default: 
-                    System.out.println("---ERROR---");
-                    System.out.println("Invalid attribute constraint " + constraint + "\n");
-                    return 0;
-            }
+    private int checkAttributeConstraints(String constraint) {
+        switch (constraint) {
+            case "primarykey":
+                return 1;
+            case "unique":
+                return 2;
+            case "notnull":
+                return 3;
+            case "default":
+                return 4;
+            default:
+                System.out.println("---ERROR---");
+                System.out.println("Invalid attribute constraint " + constraint + "\n");
+                return 0;
+        }
     }
 
     private boolean createTableCommand(String input) {
@@ -203,11 +251,6 @@ public class InputHandler {
         int rightIndex = tableNameAndAttributes.lastIndexOf(")");
         String tableName = tableNameAndAttributes.substring(0, leftIndex).trim();
         String attributes = tableNameAndAttributes.substring(leftIndex + 1, rightIndex);
-
-
-
-
-
 
         // must have table name
         if (tableName.equals("")) {
@@ -322,48 +365,55 @@ public class InputHandler {
         }
 
         String[] attList = attribute.split(" ");
-        
+
         ArrayList<SchemaAttribute> currentAtt = schema.getAttributes();
 
-        switch(actionKeyWord){
-            case "add": if (attList.length < 2) // attribute must be defined
-                            return false;
+        switch (actionKeyWord) {
+            case "add":
+                if (attList.length < 2) // attribute must be defined
+                    return false;
 
-                        String[] nAttribute = {attribute};
-                        ArrayList<SchemaAttribute> nSchemaAttribute = getAttributeList(nAttribute);    
+                String[] nAttribute = { attribute };
+                ArrayList<SchemaAttribute> nSchemaAttribute = getAttributeList(nAttribute);
 
-                        if (currentAtt.contains(nSchemaAttribute.get(0))) // attribute must not exist in the table
-                            return false;
+                if (nSchemaAttribute == null) {
+                    return false; // change wasn't valid
+                }
 
-                        currentAtt.add(nSchemaAttribute.get(0)); // add new schema attribute to list of existing schema attributes
+                if (currentAtt.contains(nSchemaAttribute.get(0))) // attribute must not exist in the table
+                    return false;
 
-                        Schema naSchema = new Schema(tableName, currentAtt, this.storageManager.getCatalog());
+                currentAtt.add(nSchemaAttribute.get(0)); // add new schema attribute to list of existing schema
+                                                         // attributes
 
-                        if (!storageManager.alterSchema(naSchema))
-                            return false;
-                        break;
+                Schema naSchema = new Schema(tableName, currentAtt, this.storageManager.getCatalog());
 
-            case "drop": if (attList.length < 2) // must only contain existing attribute's name
-                            return false;
+                if (!storageManager.alterSchema(naSchema))
+                    return false;
+                break;
 
-                        int idx = -1;
-                        for(int i = 0; i < currentAtt.size(); i++) {
-                            if (currentAtt.get(i).getAttributeName().equals(actionKeyWord)) // attribute exists in the table
-                                idx = i;
-                        }
+            case "drop":
+                if (attList.length < 2) // must only contain existing attribute's name
+                    return false;
 
-                        if (idx == -1) // attribute does not exist in the table
-                            return false;
+                int idx = -1;
+                for (int i = 0; i < currentAtt.size(); i++) {
+                    if (currentAtt.get(i).getAttributeName().equals(actionKeyWord)) // attribute exists in the table
+                        idx = i;
+                }
 
-                        currentAtt.remove(idx);
-                        Schema ndSchema = new Schema(tableName, currentAtt, this.storageManager.getCatalog());
-                        
-                        if (!storageManager.alterSchema(ndSchema))
-                            return false;
-                        break;
+                if (idx == -1) // attribute does not exist in the table
+                    return false;
+
+                currentAtt.remove(idx);
+                Schema ndSchema = new Schema(tableName, currentAtt, this.storageManager.getCatalog());
+
+                if (!storageManager.alterSchema(ndSchema))
+                    return false;
+                break;
 
             default:
-                    return false;
+                return false;
         }
 
         return true;
