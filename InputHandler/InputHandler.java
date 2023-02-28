@@ -7,6 +7,7 @@ import java.util.Stack;
 
 import IO.BinaryWriter;
 import StorageManager.StorageManager;
+import Util.Util;
 import Catalog.BICD;
 import Catalog.Catalog;
 import Catalog.Char;
@@ -33,24 +34,19 @@ public class InputHandler {
             attributeString = attributeString.trim();
             String[] attributeProperties = attributeString.split(" ");
 
-            // length must be 2 or 3 or invalid.
+            // length must be 2 or 3 or 4 or invalid.
+            // attrName char(10) unique notnull
             // attrName integer primaryKey
             // attname double
-            if (!(attributeProperties.length == 2 || attributeProperties.length == 3)) {
+            if (!(attributeProperties.length == 2 || attributeProperties.length == 3
+                    || attributeProperties.length == 4)) {
                 System.out.println("---ERROR---");
                 System.out.println("Invalid table attributes. (tooManyAttrs)\n");
                 return null;
             }
 
-            // make sure primaryKey is in 3rd positio
-            if (attributeProperties.length == 3 && !attributeProperties[2].equals("primarykey")) {
-                System.out.println("---ERROR---");
-                System.out.println("Invalid table attributes. (invalidPrimaryKey)\n");
-                return null;
-            }
-
             String attributeName = attributeProperties[0];
-            
+
             // check if two attributes have the same name
             for (SchemaAttribute schemaAttribute : schemaAttributes) {
                 if (attributeName.equals(schemaAttribute.getAttributeName())) {
@@ -60,22 +56,113 @@ public class InputHandler {
                 }
             }
 
-
-            String attributeType = attributeProperties[1];
             boolean validAttributeName = attributeName.matches("[a-zA-Z0-9]+");
-            boolean validAttributeType = attributeType
-                    .matches("integer|double|boolean|char\\([0-9]+\\)|varchar\\([0-9]+\\)");
-            boolean isPrimaryKey = attributeProperties.length == 3;
 
             if (!validAttributeName) {
                 System.out.println("---ERROR---");
                 System.out.println("Invalid attribute name " + attributeName + "\n");
                 return null;
             }
+
+            String attributeType = attributeProperties[1];
+
+            boolean validAttributeType = attributeType
+                    .matches("integer|double|boolean|char\\([0-9]+\\)|varchar\\([0-9]+\\)");
+
             if (!validAttributeType) {
                 System.out.println("---ERROR---");
                 System.out.println("Invalid attribute type " + attributeType + "\n");
                 return null;
+            }
+
+            int constraintType1 = 0;
+            int constraintType2 = 0;
+
+            boolean isPrimaryKey = false;
+            boolean isUnique = false;
+            boolean isNotNull = false;
+            boolean isDefault = false;
+            String defaultValue = null;
+
+            System.out.println(attributeProperties.length);
+            if (attributeProperties.length == 3) {
+                constraintType1 = checkAttributeConstraints(attributeProperties[2]);
+                switch (constraintType1) {
+                    case 1:
+                        isPrimaryKey = true;
+                        break;
+                    case 2:
+                        isUnique = true;
+                        break;
+                    case 3:
+                        isNotNull = true;
+                        break;
+                    case 4:
+                        isDefault = true;
+                    default:
+                        System.out.println("---ERROR---");
+                        System.out.println("Constraint " + attributeProperties[2] + " does not exist./n");
+                        return null;
+                }
+            }
+
+            if (attributeProperties.length == 4) {
+                constraintType1 = checkAttributeConstraints(attributeProperties[2]);
+                switch (constraintType1) {
+                    case 1:
+                        isPrimaryKey = true;
+                        break;
+                    case 2:
+                        isUnique = true;
+                        break;
+                    case 3:
+                        isNotNull = true;
+                        break;
+                    case 4:
+                        isDefault = true;
+                        break;
+                    default:
+                        System.out.println("---ERROR---");
+                        System.out.println("Constraint " + attributeProperties[2] + " does not exist./n");
+                        return null;
+                }
+                constraintType2 = checkAttributeConstraints(attributeProperties[3]);
+                switch (constraintType2) {
+                    case 1:
+                        if (isPrimaryKey) {
+                            System.out.println("---ERROR---");
+                            System.out.println("Invalid: primarykey constraint entered twice.\n");
+                            return null;
+                        }
+                        isPrimaryKey = true;
+                        break;
+                    case 2:
+                        if (isUnique) {
+                            System.out.println("---ERROR---");
+                            System.out.println("Invalid: unique constraint entered twice.\n");
+                            return null;
+                        }
+                        isUnique = true;
+                        break;
+                    case 3:
+                        if (isNotNull) {
+                            System.out.println("---ERROR---");
+                            System.out.println("Invalid: notnull constraint entered twice.\n");
+                            return null;
+                        }
+                        isNotNull = true;
+                        break;
+                    default:
+                        if (isDefault) {
+                            defaultValue = attributeProperties[3];
+                            if (!Util.doesStringFitType(attributeType, defaultValue)) {
+                                System.out.println("---ERROR---");
+                                System.out.println("Invalid: default valid is not correct type.\n");
+                                return null;
+                            }
+                        }
+                        break;
+                }
             }
 
             // format is good to go. Add each to the array
@@ -85,7 +172,13 @@ public class InputHandler {
                 case "integer":
                 case "double":
                 case "boolean":
-                    schemaAttribute = new BICD(attributeName, attributeType, isPrimaryKey, false);
+                    schemaAttribute = new BICD(
+                            attributeName,
+                            attributeType,
+                            isPrimaryKey,
+                            isNotNull,
+                            isUnique,
+                            Util.convertToType(attributeType, defaultValue));
                     schemaAttributes.add(schemaAttribute);
                     continue;
                 default:
@@ -93,18 +186,47 @@ public class InputHandler {
                         int leftIndex = attributeType.indexOf("(");
                         int rightIndex = attributeType.indexOf(")");
                         int length = Integer.parseInt(attributeType.substring(leftIndex + 1, rightIndex));
-                        schemaAttribute = new Char(attributeName, length, isPrimaryKey, false);
+
+                        schemaAttribute = new Char(
+                                attributeName,
+                                length,
+                                isPrimaryKey,
+                                isNotNull,
+                                isUnique,
+                                defaultValue);
                         schemaAttributes.add(schemaAttribute);
                     } else if (attributeType.matches("varchar\\([0-9]+\\)")) {
                         int leftIndex = attributeType.indexOf("(");
                         int rightIndex = attributeType.indexOf(")");
                         int length = Integer.parseInt(attributeType.substring(leftIndex + 1, rightIndex));
-                        schemaAttribute = new Varchar(attributeName, length, isPrimaryKey, false);
+
+                        schemaAttribute = new Varchar(
+                                attributeName,
+                                length,
+                                isPrimaryKey,
+                                isNotNull,
+                                isUnique,
+                                defaultValue);
                         schemaAttributes.add(schemaAttribute);
                     }
             }
         }
         return schemaAttributes;
+    }
+
+    private int checkAttributeConstraints(String constraint) {
+        switch (constraint) {
+            case "primarykey":
+                return 1;
+            case "unique":
+                return 2;
+            case "notnull":
+                return 3;
+            case "default":
+                return 4;
+            default:
+                return 0;
+        }
     }
 
     private boolean createTableCommand(String input) {
@@ -174,10 +296,156 @@ public class InputHandler {
         return true;
     }
 
+    private boolean dropTableCommand(String input) {
+        String[] inputSplitOnSpaces = input.split(" ", 3);
+
+        String command = inputSplitOnSpaces[0]; // already verified
+        String tableKeyWord = inputSplitOnSpaces[1]; // should be "table"
+        String tableName = inputSplitOnSpaces[2]; // foo(attr1 x x ....)
+
+        // if it's not table, return
+        if (!tableKeyWord.equals("table"))
+            return false;
+
+        // must have table name
+        if (tableName.equals("")) {
+            System.out.println("---ERROR---");
+            System.out.println("No table name\n");
+            return false;
+        }
+        // tableName contains bad characters
+        if (!tableName.matches("[a-zA-Z0-9]+")) {
+            System.out.println("---ERROR---");
+            System.out.println("Bad table name\n");
+            return false;
+        }
+
+        Schema schema = this.storageManager.getCatalog().getSchemaByName(tableName);
+
+        if (!storageManager.dropTable(schema))
+            return false;
+
+        return true;
+    }
+
+    private boolean alterTableCommand(String input) {
+        String[] inputSplitOnSpaces = input.split(" ", 5);
+
+        String command = inputSplitOnSpaces[0]; // already verified
+        String tableKeyWord = inputSplitOnSpaces[1]; // should be "table"
+        String tableName = inputSplitOnSpaces[2]; // foo
+        String actionKeyWord = inputSplitOnSpaces[3]; // add or drop
+        String attribute = inputSplitOnSpaces[4]; // attribute name
+
+        // if it's not table, return
+        if (!tableKeyWord.equals("table"))
+            return false;
+
+        // must have table name
+        if (tableName.equals("")) {
+            System.out.println("---ERROR---");
+            System.out.println("No table name\n");
+            return false;
+        }
+        // tableName contains bad characters
+        if (!tableName.matches("[a-zA-Z0-9]+")) {
+            System.out.println("---ERROR---");
+            System.out.println("Bad table name\n");
+            return false;
+        }
+
+        Schema schema = this.storageManager.getCatalog().getSchemaByName(tableName); // making sure table exists
+
+        // must have an attribute
+        if (attribute.equals("")) {
+            System.out.println("---ERROR---");
+            System.out.println("No attributes\n");
+            return false;
+        }
+
+        String[] attList = attribute.split(" ");
+
+        ArrayList<SchemaAttribute> currentAtt = new ArrayList<>(schema.getAttributes());
+
+        switch (actionKeyWord) {
+            case "add":
+                if (attList.length < 2) // attribute must be defined
+                    return false;
+
+                String[] nAttribute = { attribute };
+                ArrayList<SchemaAttribute> nSchemaAttribute = getAttributeList(nAttribute);
+
+                if (nSchemaAttribute == null) {
+                    return false; // change wasn't valid
+                }
+
+                if (currentAtt.contains(nSchemaAttribute.get(0))) // attribute must not exist in the table
+                    return false;
+
+                currentAtt.add(nSchemaAttribute.get(0)); // add new schema attribute to list of existing schema
+                                                         // attributes
+
+                Schema naSchema = new Schema(tableName, currentAtt, this.storageManager.getCatalog());
+                naSchema.setIndex(schema.getIndex());
+
+                if (!storageManager.alterSchema(schema, naSchema))
+                    return false;
+                break;
+
+            case "drop":
+                if (attList.length != 1) {
+                    System.out.println("---ERROR---");
+                    System.out.println("drop command not valid");
+                    return false;
+                } // must only contain existing attribute's name
+
+                int idx = -1;
+                for (int i = 0; i < currentAtt.size(); i++) {
+                    if (currentAtt.get(i).getAttributeName().equals(attList[0])) // attribute exists in the table
+                        idx = i;
+                }
+
+                if (idx == -1) {
+                    System.out.println("---ERROR---");
+                    System.out.println("Attribute not found");
+                    return false;
+                } // attribute does not exist in the table
+
+                currentAtt.remove(idx);
+                Schema ndSchema = new Schema(tableName, currentAtt, this.storageManager.getCatalog());
+                ndSchema.setIndex(schema.getIndex());
+
+                if (!storageManager.alterSchema(schema, ndSchema))
+                    return false;
+                break;
+
+            default:
+                return false;
+        }
+
+        return true;
+    }
+
     private void createTable(String originalString) {
         String input = originalString.substring(0, originalString.length() - 1).toLowerCase();
 
         if (createTableCommand(input)) {
+            System.out.println("SUCCESS!");
+        }
+    }
+
+    private void dropTable(String originalString) {
+        String input = originalString.substring(0, originalString.length() - 1).toLowerCase();
+
+        if (dropTableCommand(input)) {
+            System.out.println("SUCCESS!");
+        }
+    }
+
+    private void alterTable(String originalString) {
+        String input = originalString.substring(0, originalString.length() - 1).toLowerCase();
+
+        if (alterTableCommand(input)) {
             System.out.println("SUCCESS!");
         }
     }
@@ -194,9 +462,8 @@ public class InputHandler {
             if (s.equals("null")) {
                 // null
                 recordData.add(new RecordAttribute(null, null, 0));
-                System.out.println("---ERROR---");
-                System.out.println("Null values not handled\n");
-                return null;
+                index++;
+                continue;
             } else if (s.startsWith("\"") && s.endsWith("\"")) {
                 // a string
                 if (schema.getAttributes().get(index).getTypeAsString() == "char") {
@@ -386,6 +653,8 @@ public class InputHandler {
         List<String> valuesList = splitStringByParen(values);
         List<String> cleanValuesList = formatStringList(valuesList);
         if (cleanValuesList == null) {
+            System.out.println("---ERROR---");
+            System.out.println("Not Clean\n");
             return false;
         }
 
@@ -405,15 +674,11 @@ public class InputHandler {
 
             Schema schema = this.storageManager.getCatalog().getSchemaByName(tableName);
             if (!schema.doesRecordFollowSchema(record)) {
-                System.out.println("---ERROR---");
-                System.out.println("Record to insert does not fit into schema. \n");
                 wasErrors = true;
                 break;
             }
 
-            if (storageManager.isPrimaryKeyUsed(record)) {
-                System.out.println("---ERROR---");
-                System.out.println("Primary key is already in use\n");
+            if (storageManager.doesRecordFollowConstraints(record, tableName)) {
                 wasErrors = true;
                 break;
             }
@@ -422,7 +687,7 @@ public class InputHandler {
         }
 
         for (Record record : listOfRecords) {
-            this.storageManager.addRecord(record);
+            this.storageManager.addRecord(record, this.storageManager.getCatalog().getSchemaByName(record.getTableName()));
         }
         return !wasErrors;
     }
@@ -524,6 +789,12 @@ public class InputHandler {
         switch (command) {
             case "create":
                 createTable(originalString);
+                break;
+            case "drop":
+                dropTable(originalString);
+                break;
+            case "alter":
+                alterTable(originalString);
                 break;
             case "select":
                 select(originalString);
