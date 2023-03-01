@@ -73,6 +73,10 @@ public class BooleanExpressionEvaluator {
         //}
 
         String[] vars = term.split("((?<=>=)|(?=>=))|((?<=<=)|(?=<=))|((?<=!=)|(?=!=))|((?<==)|(?==))|((?<=<)|(?=<))|((?<=>)|(?=>))");
+        if(vars.length == 4) {
+            vars[1] = vars[1] + vars[2];
+            vars[2] = vars[3];
+        }
         switch (vars[1]) {
             case ">=":
                 return Double.parseDouble(vars[0]) >= Double.parseDouble(vars[2]);
@@ -114,15 +118,11 @@ public class BooleanExpressionEvaluator {
         //Evaluate operators with equal precedence from left to right
         if (operator1 == operator2) {
             return true;
-        } else if (operator1 == '|' && operator2 == '&') {
-            return true;
-        } else {
-            return false;
-        }
+        } else return operator1 == '|' && operator2 == '&';
     }
 
     public static void main(String[] args) {
-        String expression = "false or true and true or true and true or true";
+        String expression = "x<3 or 1=2 and 1=2 or 1>=2 and false or 1=2";
         boolean result = BooleanExpressionEvaluator.evaluate(expression);
         System.out.println(result); // Output: TRUE
     }
