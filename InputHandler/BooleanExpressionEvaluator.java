@@ -11,14 +11,14 @@ public class BooleanExpressionEvaluator {
         //((?<=x)|(?=x)) evaluates to select an empty character before or behind x
         //the big regex thing splits on empty characters before or behind | and &
 
-        for(int i = 0; i < terms.length; i++) {
+        for(String term : terms) {
             //change to char operators, remove whitespace
-            terms[i] = terms[i].replaceAll("\\s+", "");
+            term = term.replaceAll("\\s+", "");
         }
 
         //TESTER CODE
-        for (int i = 0; i != terms.length; i++) {
-            System.out.println(terms[i]);
+        for (String term : terms) {
+            System.out.println(term);
         }
         //TESTER CODE
 
