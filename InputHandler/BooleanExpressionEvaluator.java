@@ -11,9 +11,9 @@ public class BooleanExpressionEvaluator {
         //((?<=x)|(?=x)) evaluates to select an empty character before or behind x
         //the big regex thing splits on empty characters before or behind | and &
 
-        for(String term : terms) {
+        for(int i = 0; i < terms.length; i++) {
             //change to char operators, remove whitespace
-            term = term.replaceAll("\\s+", "");
+            terms[i] = terms[i].replaceAll("\\s+", "");
         }
 
         //TESTER CODE
@@ -68,9 +68,26 @@ public class BooleanExpressionEvaluator {
             return true;
         } else if (term.equals("false")) {
             return false;
-        } else {
-            throw new IllegalArgumentException("Invalid operand: " + term);
+        } //else {
+            //throw new IllegalArgumentException("Invalid operand: " + term);
+        //}
+
+        String[] vars = term.split("((?<=>=)|(?=>=))|((?<=<=)|(?=<=))|((?<=!=)|(?=!=))|((?<==)|(?==))|((?<=<)|(?=<))|((?<=>)|(?=>))");
+        switch (vars[1]) {
+            case ">=":
+                return Double.parseDouble(vars[0]) >= Double.parseDouble(vars[2]);
+            case "<=":
+                return Double.parseDouble(vars[0]) <= Double.parseDouble(vars[2]);
+            case "!=":
+                return Double.parseDouble(vars[0]) != Double.parseDouble(vars[2]);
+            case "=":
+                return vars[0].equals(vars[2]);
+            case ">":
+                return Double.parseDouble(vars[0]) > Double.parseDouble(vars[2]);
+            case "<":
+                return Double.parseDouble(vars[0]) < Double.parseDouble(vars[2]);
         }
+        throw new IllegalArgumentException("Invalid operand: " + term);
     }
 
     private static void applyOperator(Stack<Boolean> operandStack, Stack<Character> operatorStack) {
@@ -89,7 +106,7 @@ public class BooleanExpressionEvaluator {
                 return operand1 && operand2;
             default:
                 throw new IllegalArgumentException("Invalid operator: " + operator);
-                //should never be thrown but you never know
+                //Should never be thrown but you never know
         }
     }
 
