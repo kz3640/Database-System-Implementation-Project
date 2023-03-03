@@ -54,7 +54,7 @@ public class Record {
             } else if (attribute.getType() == Character.class) {
                 size += attribute.getCharLength() + 2 + 4;
             } else if (attribute.getType() == String.class) {
-                size += ((String) attribute.getAttribute()).getBytes().length + 2;
+                size += attribute.getAttribute() == null ? 0 : ((String) attribute.getAttribute()).getBytes().length + 2;
             } else if (attribute.getType() == double.class) {
                 size += 8;
             }

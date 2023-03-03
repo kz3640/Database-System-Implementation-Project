@@ -84,7 +84,6 @@ public class InputHandler {
             boolean isDefault = false;
             String defaultValue = null;
 
-            System.out.println(attributeProperties.length);
             if (attributeProperties.length == 3) {
                 constraintType1 = checkAttributeConstraints(attributeProperties[2]);
                 switch (constraintType1) {
@@ -187,6 +186,16 @@ public class InputHandler {
                         int rightIndex = attributeType.indexOf(")");
                         int length = Integer.parseInt(attributeType.substring(leftIndex + 1, rightIndex));
 
+                        if (defaultValue != null) {
+                            defaultValue = defaultValue.substring(1, defaultValue.length() - 1);
+                        }
+
+                        if (defaultValue != null && defaultValue.length() > length + 2) {
+                            System.out.println("---ERROR---");
+                            System.out.println("default value does not fit");
+                            return null;
+                        }
+
                         schemaAttribute = new Char(
                                 attributeName,
                                 length,
@@ -199,6 +208,16 @@ public class InputHandler {
                         int leftIndex = attributeType.indexOf("(");
                         int rightIndex = attributeType.indexOf(")");
                         int length = Integer.parseInt(attributeType.substring(leftIndex + 1, rightIndex));
+
+                        if (defaultValue != null) {
+                            defaultValue = defaultValue.substring(1, defaultValue.length() - 1);
+                        }
+
+                        if (defaultValue != null && defaultValue.length() > length + 2) {
+                            System.out.println("---ERROR---");
+                            System.out.println("default value does not fit");
+                            return null;
+                        }
 
                         schemaAttribute = new Varchar(
                                 attributeName,
@@ -356,6 +375,10 @@ public class InputHandler {
 
         Schema schema = this.storageManager.getCatalog().getSchemaByName(tableName); // making sure table exists
 
+        if (schema == null) {
+            return false;
+        }
+
         // must have an attribute
         if (attribute.equals("")) {
             System.out.println("---ERROR---");
@@ -379,8 +402,14 @@ public class InputHandler {
                     return false; // change wasn't valid
                 }
 
-                if (currentAtt.contains(nSchemaAttribute.get(0))) // attribute must not exist in the table
-                    return false;
+                // attribute must not exist in the table
+                for (SchemaAttribute schemaAttribute : schema.getAttributes()) {
+                    if (nSchemaAttribute.get(0).getAttributeName().equals(schemaAttribute.getAttributeName())) {
+                        System.out.println("---ERROR---");
+                        System.out.println("Attribute already in table\n");
+                        return false;
+                    }
+                }
 
                 currentAtt.add(nSchemaAttribute.get(0)); // add new schema attribute to list of existing schema
                                                          // attributes
@@ -411,6 +440,12 @@ public class InputHandler {
                     return false;
                 } // attribute does not exist in the table
 
+                if (currentAtt.get(idx).isPrimaryKey()) {
+                    System.out.println("---ERROR---");
+                    System.out.println("Cannot drop primary key\n");
+                    return false;
+                }
+
                 currentAtt.remove(idx);
                 Schema ndSchema = new Schema(tableName, currentAtt, this.storageManager.getCatalog());
                 ndSchema.setIndex(schema.getIndex());
@@ -427,7 +462,7 @@ public class InputHandler {
     }
 
     private void createTable(String originalString) {
-        String input = originalString.substring(0, originalString.length() - 1).toLowerCase();
+        String input = originalString.substring(0, originalString.length() - 1);
 
         if (createTableCommand(input)) {
             System.out.println("SUCCESS!");
@@ -435,7 +470,7 @@ public class InputHandler {
     }
 
     private void dropTable(String originalString) {
-        String input = originalString.substring(0, originalString.length() - 1).toLowerCase();
+        String input = originalString.substring(0, originalString.length() - 1);
 
         if (dropTableCommand(input)) {
             System.out.println("SUCCESS!");
@@ -443,7 +478,7 @@ public class InputHandler {
     }
 
     private void alterTable(String originalString) {
-        String input = originalString.substring(0, originalString.length() - 1).toLowerCase();
+        String input = originalString.substring(0, originalString.length() - 1);
 
         if (alterTableCommand(input)) {
             System.out.println("SUCCESS!");
@@ -687,13 +722,14 @@ public class InputHandler {
         }
 
         for (Record record : listOfRecords) {
-            this.storageManager.addRecord(record, this.storageManager.getCatalog().getSchemaByName(record.getTableName()));
+            this.storageManager.addRecord(record,
+                    this.storageManager.getCatalog().getSchemaByName(record.getTableName()));
         }
         return !wasErrors;
     }
 
     private void insertRecord(String originalString) {
-        String input = originalString.substring(0, originalString.length() - 1).toLowerCase();
+        String input = originalString.substring(0, originalString.length() - 1);
 
         if (insertRecordCommand(input)) {
             System.out.println("SUCCESS!\n");
@@ -701,7 +737,7 @@ public class InputHandler {
     }
 
     private void select(String originalString) {
-        String input = originalString.substring(0, originalString.length() - 1).toLowerCase();
+        String input = originalString.substring(0, originalString.length() - 1);
 
         String[] inputSplitOnSpaces = input.split(" ");
 
