@@ -218,7 +218,7 @@ public class BinaryWriter {
                     raf.write(remainingBytes);
                     return;
                 }
-                
+
                 raf.read(bytesToSkipOver);
                 tableIdToRead++;
             }
@@ -301,6 +301,7 @@ public class BinaryWriter {
 
                 if (tableName.equals(tableNameToDelete)) {
                     int schemaSize = sizeOfSchema + 4;
+
                     // remove schema from catalog file
                     removeBytesFromFile(raf, fileName, pointer, schemaSize);
 
@@ -342,14 +343,11 @@ public class BinaryWriter {
 
     private void removeBytesFromFile(RandomAccessFile raf, String filePath, long position, int numBytesToRemove)
             throws IOException {
-        raf.seek(position + numBytesToRemove);
 
-        int sizeOfSchema = raf.readInt();
-        System.out.println(sizeOfSchema);
-
-        String tableName = raf.readUTF();
-        System.out.println(tableName);
-
+        if (position + numBytesToRemove == raf.length()) {
+            raf.setLength(position);
+            return;
+        }
         raf.seek(position + numBytesToRemove);
 
         // shift the remaining bytes to the left
@@ -359,6 +357,6 @@ public class BinaryWriter {
         raf.write(remainingBytes);
 
         // truncate the file to remove the bytes we don't want
-        raf.setLength(raf.length() - numBytesToRemove);
+        raf.setLength(raf.getFilePointer());
     }
 }

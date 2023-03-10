@@ -42,7 +42,7 @@ public class Util {
             case "boolean":
                 return Boolean.parseBoolean(attributeValue);
             default:
-                return attributeValue;
+                return attributeValue.substring(1, attributeValue.length() - 1);
         }
     }
 

@@ -1,19 +1,59 @@
+CSCI.421.01/02 - Database System Implementation Project
+
+Christian Louria
+Andrew Dorrell
+Saaksh D'Souza
+Kaiming Zhang
+
+
+Compiling (Java 17)
+
+* Load project into IntelliJ and run Main.java
+            --- OR ----
+* javac */*.java *.java
+    this will compile all java files
 
 
 Storage:
 
 create folder at path.
 crate catalog "/path/catalog.txt"
-crate db "/path/database.txt"
+crate db "/path/Xdatabase.txt"
+    where x is the chronoligically next created table starting from 0
+
+
 
 catalog storage:
-    create file when create table.
+    create file db is initiallized
+
+    format:
+    pageSize
+    pages
+    <schemax>
+
+Schema storage:
+
+    format:
+    legnth of schema in bytes (not including this int)
+    tablename
+    <attributeX>
+
+Attribute storage:
+
+    format:
+    attributeName
+    #primarykey
+    #unique
+    #notnull
+    attributeType
+    #length of char/varchar
+
+    # means optional
+
 
 
 db storage:
-    create file on program launch
-    init file to have 0 pages
-
+    create file when new table is created
 
 file:
     <numpages>

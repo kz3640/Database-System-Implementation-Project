@@ -67,20 +67,43 @@ public class Main {
             System.out.println("Enter command: ");
             while (true) {
                 String line = scan.nextLine();
+                input.append(line + " ");
 
                 // check to see if there is a semicolon in the input
-                int semicolonIndex = line.indexOf(";");
+                int semicolonIndex = findSemicolonOutsideQuotes(input.toString());
                 if (semicolonIndex != -1) {
-                    // if there is then add everything before the semicolon to the stringbuilder
-                    input.append(line.substring(0, semicolonIndex + 1));
+                    // if there is a semicolon, split the input at that point and handle each command separately
+                    String[] commands = input.substring(0, semicolonIndex).trim().split(";");
+                    for (String command : commands) {
+                        String commandWithSemi = command + ";";
+                        String finalInput = removeExtraWhitespace(commandWithSemi);
+                        programRunning = inputHandler.handleInput(finalInput);
+                        if (!programRunning) {
+                            break;
+                        }
+                    }
                     break;
                 }
-                input.append(line + " ");
             }
-            String finalInput = removeExtraWhitespace(input.toString());
-            programRunning = inputHandler.handleInput(finalInput);
+            // String finalInput = removeExtraWhitespace(input.toString());
+            // programRunning = inputHandler.handleInput(finalInput);
         }
         scan.close();
+    }
+
+    // helper method to find the index of the first semicolon that appears outside
+    // of a quoted string
+    private static int findSemicolonOutsideQuotes(String input) {
+        boolean inQuotes = false;
+        for (int i = 0; i < input.length(); i++) {
+            char c = input.charAt(i);
+            if (c == '"') {
+                inQuotes = !inQuotes;
+            } else if (!inQuotes && c == ';') {
+                return i;
+            }
+        }
+        return -1;
     }
 
     private static String removeExtraWhitespace(String input) {
@@ -92,11 +115,8 @@ public class Main {
             if (c == '\"') {
                 insideQuotes = !insideQuotes;
                 output.append(c);
-            } else if (c == ' ' && !insideQuotes) {
-                while (i < input.length() - 1 && input.charAt(i + 1) == ' ') {
-                    i++;
-                }
-                output.append(' ');
+            } else if (!insideQuotes) {
+                output.append(Character.toLowerCase(c));
             } else {
                 output.append(c);
             }
