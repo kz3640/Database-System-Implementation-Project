@@ -107,15 +107,15 @@ public class Page {
 
     public void printPage() {
         int indexOfRecord = 0;
-        System.out.println("pageID: " + this.pageId);
+        // System.out.println("pageID: " + this.pageId); debugging
         if (this.records.size() == 0) {
             System.out.println("\n page contains no records");
         }
         for (Record record : this.records) {
-            System.out.print("\n record " + indexOfRecord + ": ");
+            // System.out.print("\n record " + indexOfRecord + ": ");
             record.printRecord();
+            System.out.println("");
             indexOfRecord++;
         }
-        System.out.print("\n");
     }
 }

@@ -156,7 +156,7 @@ public class InputHandler {
                             defaultValue = attributeProperties[3];
                             if (!Util.doesStringFitType(attributeType, defaultValue)) {
                                 System.out.println("---ERROR---");
-                                System.out.println("Invalid: default valid is not correct type.\n");
+                                System.out.println("Invalid: default value is not correct type.\n");
                                 return null;
                             }
                         }
@@ -536,6 +536,7 @@ public class InputHandler {
                         return null;
                     }
                 } else {
+                    System.out.println(s + " does not match the schema type defined for that attribute. " + schema.getAttributes().get(index).getTypeAsString());
                     return null;
                 }
             }
@@ -815,6 +816,13 @@ public class InputHandler {
 
         System.out.println("Display info command:");
         System.out.println("display info <name>;\n");
+
+        System.out.println("Drop table command:");
+        System.out.println("drop table <name>;\n");
+
+        System.out.println("Alter table command:");
+        System.out.println("alter table <name> add <a_name> <a_type>;");
+        System.out.println("alter table <name> add <a_name> <a_type> default <value>;\n");
     }
 
     public boolean handleInput(String originalString) throws IOException {

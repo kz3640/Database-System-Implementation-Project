@@ -109,7 +109,7 @@ public class Schema {
             }
             if (schemaAttributes.get(index).isNotNull() && recordAttributes.get(index).getAttribute() == null) {
                 System.out.println("---ERROR---");
-                System.out.println("Attribute is null and can't be");
+                System.out.println("Record has null value but attribute must be not null");
                 return false;
             }
             if (!schemaAttributes.get(index).isNotNull() && recordAttributes.get(index).getAttribute() == null) {
@@ -120,6 +120,7 @@ public class Schema {
                     if (!(recordAttributes.get(index).getType() == int.class)) {
                         System.out.println("---ERROR---");
                         System.out.println("Record does not fit the scehma");
+                        System.out.println(recordAttributes.get(index).getType().getSimpleName() + " != "  + int.class.getSimpleName());
                         return false;
                     }
                     break;
@@ -127,6 +128,7 @@ public class Schema {
                     if (!(recordAttributes.get(index).getType() == String.class)) {
                         System.out.println("---ERROR---");
                         System.out.println("Record does not fit the scehma");
+                        System.out.println(recordAttributes.get(index).getType().getSimpleName() + " != varchar");
                         return false;
                     } else {
                         String recordString = (String) recordAttributes.get(index).getAttribute();
@@ -142,6 +144,7 @@ public class Schema {
                     if (!(recordAttributes.get(index).getType() == Character.class)) {
                         System.out.println("---ERROR---");
                         System.out.println("Record does not fit the scehma");
+                        System.out.println(recordAttributes.get(index).getType().getSimpleName() + " != char");
                         return false;
                     } else {
                         String recordString = (String) recordAttributes.get(index).getAttribute();
@@ -156,6 +159,7 @@ public class Schema {
                 case "double":
                     if (!(recordAttributes.get(index).getType() == double.class)) {
                         System.out.println("---ERROR---");
+                        System.out.println(recordAttributes.get(index).getType().getSimpleName() + " != "  + double.class.getSimpleName());
                         System.out.println("Record does not fit the scehma");
                         return false;
                     }
@@ -164,6 +168,7 @@ public class Schema {
                     if (!(recordAttributes.get(index).getType() == boolean.class)) {
                         System.out.println("---ERROR---");
                         System.out.println("Record does not fit the scehma");
+                        System.out.println(recordAttributes.get(index).getType().getSimpleName() + " != "  + boolean.class.getSimpleName());
                         return false;
                     }
                     break;
