@@ -178,6 +178,7 @@ public class StorageManager {
 
         int pageIndex = 0;
         int pagesInTable = this.pageBuffer.getTotalPages(schema);
+        System.out.println("");
         while (true) {
             if (pagesInTable <= pageIndex)
                 break;
@@ -188,6 +189,7 @@ public class StorageManager {
 
             pageIndex++;
         }
+        System.out.println("");
     }
 
     // add record to db
@@ -340,7 +342,7 @@ public class StorageManager {
         }
         schema.printSchema();
 
-        System.out.println("Index: " + schema.getIndex());
+        // System.out.println("Index: " + schema.getIndex()); debugging
         System.out.println("Pages: " + pageBuffer.getTotalPages(schema));
         System.out.println("Records: " + pageBuffer.getRecordAmmount(schema, tableName));
 
