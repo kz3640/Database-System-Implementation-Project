@@ -1,5 +1,6 @@
 package Catalog;
 
+import java.io.File;
 import java.util.ArrayList;
 
 import Record.RecordAttribute;
@@ -50,10 +51,19 @@ public class Schema {
             String attributeLine = "    " + attribute.getAttributeName();
             attributeLine = attributeLine + " " + attribute.getTypeAsString();
             if (attribute.getLength() > 0) {
-                attributeLine = attributeLine + " " +  attribute.getLength() + " ";
+                attributeLine = attributeLine + " " + attribute.getLength() + " ";
             }
             if (attribute.isPrimaryKey()) {
                 attributeLine += " primarykey";
+            }
+            if (attribute.isNotNull()) {
+                attributeLine += " not null";
+            }
+            if (attribute.isUnique()) {
+                attributeLine += " unique";
+            }
+            if (attribute.getDefault() != null) {
+                attributeLine += " default: " + attribute.getDefault();
             }
             System.out.println(attributeLine);
         }
@@ -67,33 +77,63 @@ public class Schema {
         return this.indexOfPrimaryKey;
     }
 
+    public ArrayList<Integer> getIndexesOfUniqueValues() {
+        ArrayList<Integer> indexesOfUniqueValues = new ArrayList<>();
+
+        int i = 0;
+        for (SchemaAttribute attribute : this.attributes) {
+            if (attribute.isUnique())
+                indexesOfUniqueValues.add(i);
+            i++;
+        }
+
+        return indexesOfUniqueValues;
+    }
+
     public boolean doesRecordFollowSchema(Record record) {
         ArrayList<SchemaAttribute> schemaAttributes = this.getAttributes();
 
         ArrayList<RecordAttribute> recordAttributes = record.getData();
         if (recordAttributes.size() != schemaAttributes.size()) {
+            System.out.println("---ERROR---");
+            System.out.println("Invalid record attribute ammount");
             return false;
         }
 
         for (int index = 0; index < recordAttributes.size(); index++) {
-            if (schemaAttributes.get(index).isNotNull() && recordAttributes.get(index) == null) {
+
+            if (schemaAttributes.get(index).isPrimaryKey() && recordAttributes.get(index).getAttribute() == null) {
+                System.out.println("---ERROR---");
+                System.out.println("Primary key attribute can't be null");
                 return false;
             }
-            if (!schemaAttributes.get(index).isNotNull() && recordAttributes.get(index) == null) {
+            if (schemaAttributes.get(index).isNotNull() && recordAttributes.get(index).getAttribute() == null) {
+                System.out.println("---ERROR---");
+                System.out.println("Record has null value but attribute must be not null");
+                return false;
+            }
+            if (!schemaAttributes.get(index).isNotNull() && recordAttributes.get(index).getAttribute() == null) {
                 continue;
             }
             switch (schemaAttributes.get(index).getTypeAsString()) {
                 case "integer":
                     if (!(recordAttributes.get(index).getType() == int.class)) {
+                        System.out.println("---ERROR---");
+                        System.out.println("Record does not fit the scehma");
+                        System.out.println(recordAttributes.get(index).getType().getSimpleName() + " != "  + int.class.getSimpleName());
                         return false;
                     }
                     break;
                 case "varchar":
                     if (!(recordAttributes.get(index).getType() == String.class)) {
+                        System.out.println("---ERROR---");
+                        System.out.println("Record does not fit the scehma");
+                        System.out.println(recordAttributes.get(index).getType().getSimpleName() + " != varchar");
                         return false;
                     } else {
                         String recordString = (String) recordAttributes.get(index).getAttribute();
                         if (schemaAttributes.get(index).getLength() < recordString.length()) {
+                            System.out.println("---ERROR---");
                             System.out.println("Varchar of length " + recordString.length()
                                     + " is too large for length " + schemaAttributes.get(index).getLength());
                             return false;
@@ -102,10 +142,14 @@ public class Schema {
                     break;
                 case "char":
                     if (!(recordAttributes.get(index).getType() == Character.class)) {
+                        System.out.println("---ERROR---");
+                        System.out.println("Record does not fit the scehma");
+                        System.out.println(recordAttributes.get(index).getType().getSimpleName() + " != char");
                         return false;
                     } else {
                         String recordString = (String) recordAttributes.get(index).getAttribute();
                         if (schemaAttributes.get(index).getLength() < recordString.length()) {
+                            System.out.println("---ERROR---");
                             System.out.println("Char of length " + recordString.length()
                                     + " is too large for length " + schemaAttributes.get(index).getLength());
                             return false;
@@ -114,11 +158,17 @@ public class Schema {
                     break;
                 case "double":
                     if (!(recordAttributes.get(index).getType() == double.class)) {
+                        System.out.println("---ERROR---");
+                        System.out.println(recordAttributes.get(index).getType().getSimpleName() + " != "  + double.class.getSimpleName());
+                        System.out.println("Record does not fit the scehma");
                         return false;
                     }
                     break;
                 case "boolean":
                     if (!(recordAttributes.get(index).getType() == boolean.class)) {
+                        System.out.println("---ERROR---");
+                        System.out.println("Record does not fit the scehma");
+                        System.out.println(recordAttributes.get(index).getType().getSimpleName() + " != "  + boolean.class.getSimpleName());
                         return false;
                     }
                     break;
@@ -127,5 +177,20 @@ public class Schema {
             }
         }
         return true;
+    }
+
+    public void remove() {
+        String fileName = this.catalog.getPath() + this.index + "database.txt";
+        File file = new File(fileName);
+        file.delete();
+    }
+
+    public void convertToTemp() {
+        String oldFileName = this.catalog.getPath() + this.index + "database.txt";
+        this.index = "-1";
+        String newFileName = this.catalog.getPath() + this.index + "database.txt";
+        File oldFile = new File(oldFileName);
+        File newFile = new File(newFileName);
+        oldFile.renameTo(newFile);
     }
 }

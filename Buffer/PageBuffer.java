@@ -13,7 +13,6 @@ public class PageBuffer {
 
     public ArrayList<Page> pageBuffer;
     public int maxBufferSize; // how many pages there are in the db
-    public int currentBufferSize;
     public BinaryReader reader;
     public BinaryWriter writer;
     public Catalog catalog;
@@ -21,7 +20,6 @@ public class PageBuffer {
     public PageBuffer(int maxBufferSize, BinaryReader reader, BinaryWriter writer, Catalog catalog) {
         this.pageBuffer = new ArrayList<Page>();
         this.maxBufferSize = maxBufferSize;
-        this.currentBufferSize = 0;
         this.reader = reader;
         this.writer = writer;
         this.catalog = catalog;
@@ -32,9 +30,8 @@ public class PageBuffer {
         int newPageIndex = this.getTotalPages(schema);
         Page newPage = new Page(newPageIndex, new ArrayList<>(), this.catalog, schema.getFileName());
         this.pageBuffer.add(newPage);
-        this.currentBufferSize += 1;
 
-        if (this.maxBufferSize <= this.currentBufferSize) {
+        if (this.maxBufferSize <= this.pageBuffer.size()) {
             writeLRUPage();
         }
         return newPage;
@@ -49,8 +46,8 @@ public class PageBuffer {
      * 
      * @return A boolen representing if the page was found or not.
      */
-    public Page getPage(int pageId, Schema schema) {
-        for (int i = 0; i < this.currentBufferSize; i++) {
+    public Page getPage(int pageId, Schema schema, boolean addToBuffer) {
+        for (int i = 0; i < this.pageBuffer.size(); i++) {
             Page page = this.pageBuffer.get(i);
             if (page.getPageID() == pageId && page.getFileName().equals(schema.getFileName())) {
                 page.setTime();
@@ -62,10 +59,13 @@ public class PageBuffer {
         if (page == null)
             return null;
 
-        this.pageBuffer.add(page);
-        this.currentBufferSize += 1;
+        if (!addToBuffer) {
+            return page;
+        }
 
-        if (this.maxBufferSize <= this.currentBufferSize) {
+        this.pageBuffer.add(page);
+
+        if (this.maxBufferSize <= this.pageBuffer.size()) {
             writeLRUPage();
         }
 
@@ -74,9 +74,8 @@ public class PageBuffer {
 
     public void addPageToBuffer(Page page) {
         this.pageBuffer.add(page);
-        this.currentBufferSize += 1;
 
-        if (this.maxBufferSize < this.currentBufferSize) {
+        if (this.maxBufferSize < this.pageBuffer.size()) {
             writeLRUPage();
         }
     }
@@ -85,7 +84,7 @@ public class PageBuffer {
     public void writeLRUPage() {
         Timestamp minTimestamp = pageBuffer.get(0).getTime();
         int idx = 0;
-        for (int i = 1; i < this.currentBufferSize; i++) {
+        for (int i = 1; i < this.pageBuffer.size(); i++) {
             if (this.pageBuffer.get(i).getTime().before(minTimestamp)) {
                 idx = i;
                 minTimestamp = this.pageBuffer.get(i).getTime();
@@ -94,12 +93,22 @@ public class PageBuffer {
 
         Page removedPage = this.pageBuffer.remove(idx);
         this.writer.writePage(removedPage);
-        this.currentBufferSize -= 1;
+    }
+
+    public void removeSchemaFromBuffer(Schema schema) {
+        schema.getIndex();
+        for (int i = 0; i < this.pageBuffer.size(); i++) {
+            Page page = this.pageBuffer.get(i);
+            if (page.getPageID() == Integer.parseInt(schema.getIndex())
+                    && page.getFileName().equals(schema.getFileName())) {
+                this.pageBuffer.remove(i);
+            }
+        }
     }
 
     // empty buffer
-    public void clearBuffer() throws IOException {
-        while (this.currentBufferSize != 0) {
+    public void clearBuffer() {
+        while (this.pageBuffer.size() != 0) {
             writeLRUPage();
         }
     }
@@ -110,7 +119,8 @@ public class PageBuffer {
         return newPage;
     }
 
-    // calculate the ammount of pages that exist in the db. This can be pages stored in the db or the buffer
+    // calculate the ammount of pages that exist in the db. This can be pages stored
+    // in the db or the buffer
     public int getTotalPages(Schema schema) {
         String fileName = schema.getFileName();
         int highestPageInBuffer = 0;
@@ -134,7 +144,7 @@ public class PageBuffer {
             if (pagesInTable <= pageIndex)
                 break;
 
-            Page page = this.getPage(pageIndex, schema);
+            Page page = this.getPage(pageIndex, schema, true);
 
             recordAmmount += page.records.size();
 

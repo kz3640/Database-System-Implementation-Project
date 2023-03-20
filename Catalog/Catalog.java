@@ -60,6 +60,19 @@ public class Catalog {
         return null;
     }
 
+    public void dropTable(Schema schema) {
+        this.tables.remove(schema.getTableName());
+    }
+
+    public void balanceTableIndex(int indexRemoved) {
+        for (Schema schema : this.tables.values()) {
+            int schemaIndex = Integer.parseInt(schema.getIndex());
+            if ( schemaIndex >  indexRemoved) {
+                schema.setIndex(String.valueOf(schemaIndex - 1));
+            }
+        }
+    }
+
     public void printCatalog(StorageManager sm) {
         System.out.println();
         System.out.println("DB Location: " + path);

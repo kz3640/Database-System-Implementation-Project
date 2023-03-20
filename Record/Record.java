@@ -30,11 +30,19 @@ public class Record {
     }
 
     public void printRecord() {
+
         for (RecordAttribute col : this.data) {
-            System.out.print(" | ");
             System.out.print(col.getAttribute());
+            System.out.print(" | ");
         }
-        System.out.println("");
+        // System.out.println("");
+
+        // debugging
+        // for (RecordAttribute col : this.data) {
+        // System.out.print(" | ");
+        // System.out.print(col.getAttribute());
+        // }
+        // System.out.println("");
     }
 
     // calculate the total amount of bytes that the record takes up
@@ -54,7 +62,8 @@ public class Record {
             } else if (attribute.getType() == Character.class) {
                 size += attribute.getCharLength() + 2 + 4;
             } else if (attribute.getType() == String.class) {
-                size += ((String) attribute.getAttribute()).getBytes().length + 2;
+                size += attribute.getAttribute() == null ? 0
+                        : ((String) attribute.getAttribute()).getBytes().length + 2;
             } else if (attribute.getType() == double.class) {
                 size += 8;
             }

@@ -11,4 +11,8 @@ public interface SchemaAttribute {
     public boolean isPrimaryKey();
 
     public String getAttributeName();
+
+    public boolean isUnique();
+
+    public Object getDefault();
 }

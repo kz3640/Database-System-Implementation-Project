@@ -87,17 +87,35 @@ public class Page {
         return false;
     }
 
+    public boolean isUniqueValueUnique(Record record) {
+        Schema schema = getSchema();
+
+        ArrayList<Integer> indexesOfUniqueValues = schema.getIndexesOfUniqueValues();
+        for (Record recordInPage : records) {
+            for (Integer integer : indexesOfUniqueValues) {
+                Object primAttr = recordInPage.getData().get(integer).getAttribute();
+                Object primRecordAttr = record.getData().get(integer).getAttribute();
+                if (primAttr == null || primRecordAttr == null) {
+                    continue;
+                }
+                if (primAttr.equals(primRecordAttr))
+                    return false;
+            }
+        }
+        return true;
+    }
+
     public void printPage() {
         int indexOfRecord = 0;
-        System.out.println("pageID: " + this.pageId);
+        // System.out.println("pageID: " + this.pageId); debugging
         if (this.records.size() == 0) {
             System.out.println("\n page contains no records");
         }
         for (Record record : this.records) {
-            System.out.print("\n record " + indexOfRecord + ": ");
+            // System.out.print("\n record " + indexOfRecord + ": ");
             record.printRecord();
+            System.out.println("");
             indexOfRecord++;
         }
-        System.out.print("\n");
     }
 }

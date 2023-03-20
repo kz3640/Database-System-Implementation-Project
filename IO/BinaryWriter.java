@@ -46,47 +46,11 @@ public class BinaryWriter {
             raf.writeInt(numTables);
 
             // go to end of file to write the information
-            int lengthOfSchema = 0;
             raf.seek(raf.length());
-            long positionOfLength = raf.getFilePointer();
-            raf.writeInt(0); // length of schema in bytes
-
-            raf.writeUTF(schema.getTableName());
-            lengthOfSchema = lengthOfSchema + schema.getTableName().length() + 2;
-
-            // write each attribute to the file
-            for (SchemaAttribute attribute : schema.getAttributes()) {
-
-                lengthOfSchema = lengthOfSchema + 2 + attribute.getAttributeName().length();
-                raf.writeUTF(attribute.getAttributeName());
-
-                if (attribute.isPrimaryKey()) {
-                    raf.writeUTF("primarykey");
-                    lengthOfSchema = lengthOfSchema + 2 + "primarykey".length();
-                }
-
-                lengthOfSchema = lengthOfSchema + 2 + attribute.getTypeAsString().length();
-                raf.writeUTF(attribute.getTypeAsString());
-
-                switch (attribute.getTypeAsString()) {
-                    case "integer":
-                    case "boolean":
-                    case "double":
-                        break;
-                    case "char":
-                    case "varchar":
-                        lengthOfSchema = lengthOfSchema + 4;
-                        raf.writeInt(attribute.getLength());
-                        break;
-                }
-
-            }
-            raf.seek(positionOfLength);
-            raf.writeInt(lengthOfSchema);
+            addSchemaToPosition(raf, raf.getFilePointer(), schema);
         } catch (IOException e) {
             e.printStackTrace();
         }
-
     }
 
     // create the initial db file with 0 pages
@@ -116,8 +80,8 @@ public class BinaryWriter {
 
         // null bit map.
         for (int i = 0; i < numBits; i++) {
-            Object o = recordData.get(i);
-            if (o == null) {
+            RecordAttribute o = recordData.get(i);
+            if (o.getAttribute() == null) {
                 nullBitMap[i / 8] |= (1 << (i % 8));
             }
         }
@@ -164,7 +128,8 @@ public class BinaryWriter {
             int blackPageByteLocation = (blankPageIndex * this.catalog.getPageSize()) + 4;
             raf.seek(blackPageByteLocation);
             while (blankPageIndex < page.getPageID()) {
-                int junkSpace = Util.calculateJunkSpaceSize(new Page(blankPageIndex, new ArrayList<>(), catalog, fileName),
+                int junkSpace = Util.calculateJunkSpaceSize(
+                        new Page(blankPageIndex, new ArrayList<>(), catalog, fileName),
                         this.catalog.getPageSize());
                 raf.writeInt(blankPageIndex);
                 raf.writeInt(junkSpace);
@@ -209,5 +174,189 @@ public class BinaryWriter {
         } else if (attribute.getType() == double.class) {
             raf.writeDouble((Double) attribute.getAttribute());
         }
+    }
+
+    public void deleteFile(Schema schema) {
+        String fileName = this.catalog.getPath() + schema.getIndex() + "database.txt";
+        File file = new File(fileName);
+        file.delete();
+    }
+
+    public void alterTable(Schema schema) {
+        String tableNameToDelete = schema.getTableName();
+        String fileName = this.catalog.getPath() + "catalog.txt";
+
+        try (RandomAccessFile raf = new RandomAccessFile(fileName, "rw")) {
+            raf.readInt(); // pageSize, we ignore
+            int totalTables = raf.readInt();
+
+            int tableIdToRead = 0;
+            // loop through each table
+            while (tableIdToRead < totalTables) {
+
+                long pointer = raf.getFilePointer();
+                int sizeOfSchema = raf.readInt();
+                String tableName = raf.readUTF();
+                int remainingBytesInSchema = sizeOfSchema - tableName.length() - 2; // need to add the length of the
+                                                                                    // string back
+                byte[] bytesToSkipOver = new byte[remainingBytesInSchema];
+
+                if (tableName.equals(tableNameToDelete)) {
+                    int schemaSize = sizeOfSchema + 4;
+                    // store all following schemas
+                    raf.seek(pointer + schemaSize);
+                    byte[] remainingBytes = new byte[(int) ((int) raf.length() - schemaSize - pointer)];
+                    raf.read(remainingBytes);
+
+                    addSchemaToPosition(raf, pointer, schema);
+
+                    raf.seek(pointer);
+                    sizeOfSchema = raf.readInt();
+                    bytesToSkipOver = new byte[sizeOfSchema];
+                    raf.read(bytesToSkipOver);
+
+                    raf.write(remainingBytes);
+                    return;
+                }
+
+                raf.read(bytesToSkipOver);
+                tableIdToRead++;
+            }
+            raf.close();
+
+            System.out.println("Not Found");
+            return;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void addSchemaToPosition(RandomAccessFile raf, long position, Schema schema) throws IOException {
+        int lengthOfSchema = 0;
+        raf.seek(position);
+        long positionOfLength = raf.getFilePointer();
+
+        raf.writeInt(0); // length of schema in bytes
+
+        raf.writeUTF(schema.getTableName());
+        lengthOfSchema = lengthOfSchema + schema.getTableName().length() + 2;
+
+        // write each attribute to the file
+        for (SchemaAttribute attribute : schema.getAttributes()) {
+
+            lengthOfSchema = lengthOfSchema + 2 + attribute.getAttributeName().length();
+            raf.writeUTF(attribute.getAttributeName());
+
+            if (attribute.isPrimaryKey()) {
+                raf.writeUTF("primarykey");
+                lengthOfSchema = lengthOfSchema + 2 + "primarykey".length();
+            }
+            if (attribute.isUnique()) {
+                raf.writeUTF("unique");
+                lengthOfSchema = lengthOfSchema + 2 + "unique".length();
+            }
+            if (attribute.isNotNull()) {
+                raf.writeUTF("notnull");
+                lengthOfSchema = lengthOfSchema + 2 + "notnull".length();
+            }
+
+            lengthOfSchema = lengthOfSchema + 2 + attribute.getTypeAsString().length();
+            raf.writeUTF(attribute.getTypeAsString());
+
+            switch (attribute.getTypeAsString()) {
+                case "integer":
+                case "boolean":
+                case "double":
+                    break;
+                case "char":
+                case "varchar":
+                    lengthOfSchema = lengthOfSchema + 4;
+                    raf.writeInt(attribute.getLength());
+                    break;
+            }
+
+        }
+        raf.seek(positionOfLength);
+        raf.writeInt(lengthOfSchema);
+    }
+
+    public void removeTableFromCatalog(Schema schema) {
+        String tableNameToDelete = schema.getTableName();
+        String fileName = this.catalog.getPath() + "catalog.txt";
+
+        try (RandomAccessFile raf = new RandomAccessFile(fileName, "rw")) {
+            raf.readInt(); // pageSize, we ignore
+            int totalTables = raf.readInt();
+
+            int tableIdToRead = 0;
+            // loop through each table
+            while (tableIdToRead < totalTables) {
+
+                long pointer = raf.getFilePointer();
+                int sizeOfSchema = raf.readInt();
+                String tableName = raf.readUTF();
+                int remainingBytesInSchema = sizeOfSchema - tableName.length() - 2; // need to add the length of the
+                                                                                    // string back
+                byte[] bytesToSkipOver = new byte[remainingBytesInSchema];
+
+                if (tableName.equals(tableNameToDelete)) {
+                    int schemaSize = sizeOfSchema + 4;
+
+                    // remove schema from catalog file
+                    removeBytesFromFile(raf, fileName, pointer, schemaSize);
+
+                    // update table count
+                    raf.seek(4);
+                    raf.writeInt(totalTables - 1);
+                    catalog.dropTable(schema); // remove it from the catalog
+
+                    // need to rename every file that comes after the one we deleted.
+                    renameFilesAfter(tableIdToRead, totalTables);
+                    this.catalog.balanceTableIndex(tableIdToRead);
+
+                    return;
+                }
+
+                raf.read(bytesToSkipOver);
+                tableIdToRead++;
+            }
+            raf.close();
+
+            System.out.println("Not Found");
+            return;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void renameFilesAfter(int index, int numFiles) {
+        while (index < numFiles) {
+            String oldFileName = this.catalog.getPath() + index + "database.txt";
+            String newFileName = this.catalog.getPath() + (index - 1) + "database.txt";
+            File oldFile = new File(oldFileName);
+            File newFile = new File(newFileName);
+            oldFile.renameTo(newFile);
+            index++;
+        }
+
+    }
+
+    private void removeBytesFromFile(RandomAccessFile raf, String filePath, long position, int numBytesToRemove)
+            throws IOException {
+
+        if (position + numBytesToRemove == raf.length()) {
+            raf.setLength(position);
+            return;
+        }
+        raf.seek(position + numBytesToRemove);
+
+        // shift the remaining bytes to the left
+        byte[] remainingBytes = new byte[(int) ((int) raf.length() - numBytesToRemove - position)];
+        raf.read(remainingBytes);
+        raf.seek(position);
+        raf.write(remainingBytes);
+
+        // truncate the file to remove the bytes we don't want
+        raf.setLength(raf.getFilePointer());
     }
 }
