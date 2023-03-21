@@ -799,9 +799,13 @@ public class InputHandler {
 
         Schema schema = this.storageManager.getCatalog().getSchemaByName(tableName);
 
+        if (schema == null) {
+            return;
+        }
+
         if (inputSplitOnSpaces.length == 3) {
             // delete all items from db
-            System.out.println("True");
+            this.storageManager.delete(tableName, "true");
             return;
         }
 

@@ -350,7 +350,6 @@ public class StorageManager {
         return true;
     }
 
-
     public void delete(String tableName, String logic) {
         // boolean result = BooleanExpressionEvaluator.evaluate(logic);
 
@@ -358,9 +357,9 @@ public class StorageManager {
         Schema schema = this.catalog.getSchemaByName(tableName);
 
         int pageIndex = 0;
-        int pagesInTable = this.pageBuffer.getTotalPages(schema);
-        System.out.println("");
+
         while (true) {
+            int pagesInTable = this.pageBuffer.getTotalPages(schema);
             if (pagesInTable <= pageIndex)
                 break;
 
@@ -373,14 +372,37 @@ public class StorageManager {
                 }
             }
 
-            if (newRecords.size() != page.getRecords().size()) {
+            if (newRecords.size() == 0) {
+                pageBuffer.removePage(page);
+                removePage(page);
+                continue;
+            } else if (newRecords.size() != page.getRecords().size()) {
                 page.setRecords(newRecords);
             }
 
             pageIndex++;
         }
-        System.out.println("");
 
+        // this.pageBuffer.updatePageTotal(schema, pagesLeft);
+        System.out.println("");
+    }
+
+    public void removePage(Page page) {
+        int lastPage = this.pageBuffer.getTotalPages(page.getSchema()) - 1;
+
+        int pageIndex = page.getPageID() + 1;
+        
+        while (true) {
+            if (pageIndex > lastPage)
+                break;
+            Page pageToUpdate = this.pageBuffer.getPage(pageIndex, page.getSchema(), true);
+            pageToUpdate.decrementPageID();
+
+            if (pageIndex == lastPage) {
+                this.pageBuffer.updatePageTotal(pageToUpdate.getSchema(), pageToUpdate.getPageID());
+            }
+            pageIndex++;
+        }
     }
 
     // empty buffer

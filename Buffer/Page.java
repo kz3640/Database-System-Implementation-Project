@@ -57,6 +57,10 @@ public class Page {
         this.pageId++;
     }
 
+    public void decrementPageID() {
+        this.pageId--;
+    }
+
     // calculate how much free space exists after all of the records
     public int getFreeSpace() {
         return Util.calculateJunkSpaceSize(this, this.catalog.getPageSize());
@@ -107,7 +111,7 @@ public class Page {
 
     public void printPage() {
         int indexOfRecord = 0;
-        // System.out.println("pageID: " + this.pageId); debugging
+        // System.out.println("pageID: " + this.pageId); // debugging
         if (this.records.size() == 0) {
             System.out.println("\n page contains no records");
         }
