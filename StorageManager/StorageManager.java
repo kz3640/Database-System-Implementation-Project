@@ -11,6 +11,7 @@ import Record.RecordAttribute;
 import Catalog.Catalog;
 import Catalog.Schema;
 import Catalog.SchemaAttribute;
+import InputHandler.BooleanExpressionEvaluator;
 
 public class StorageManager {
     private Catalog catalog;
@@ -347,6 +348,39 @@ public class StorageManager {
         System.out.println("Records: " + pageBuffer.getRecordAmmount(schema, tableName));
 
         return true;
+    }
+
+
+    public void delete(String tableName, String logic) {
+        // boolean result = BooleanExpressionEvaluator.evaluate(logic);
+
+        this.catalog.getSchemaByName(tableName);
+        Schema schema = this.catalog.getSchemaByName(tableName);
+
+        int pageIndex = 0;
+        int pagesInTable = this.pageBuffer.getTotalPages(schema);
+        System.out.println("");
+        while (true) {
+            if (pagesInTable <= pageIndex)
+                break;
+
+            Page page = this.pageBuffer.getPage(pageIndex, schema, true);
+
+            ArrayList<Record> newRecords = new ArrayList<>();
+            for (Record record : page.getRecords()) {
+                if (!BooleanExpressionEvaluator.evaluate(logic, record, schema)) {
+                    newRecords.add(record);
+                }
+            }
+
+            if (newRecords.size() != page.getRecords().size()) {
+                page.setRecords(newRecords);
+            }
+
+            pageIndex++;
+        }
+        System.out.println("");
+
     }
 
     // empty buffer

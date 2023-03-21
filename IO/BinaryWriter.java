@@ -216,6 +216,7 @@ public class BinaryWriter {
                     raf.read(bytesToSkipOver);
 
                     raf.write(remainingBytes);
+                    raf.setLength(raf.getFilePointer());
                     return;
                 }
 

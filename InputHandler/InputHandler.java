@@ -536,7 +536,8 @@ public class InputHandler {
                         return null;
                     }
                 } else {
-                    System.out.println(s + " does not match the schema type defined for that attribute. " + schema.getAttributes().get(index).getTypeAsString());
+                    System.out.println(s + " does not match the schema type defined for that attribute. "
+                            + schema.getAttributes().get(index).getTypeAsString());
                     return null;
                 }
             }
@@ -775,6 +776,94 @@ public class InputHandler {
 
     }
 
+    private void delete(String originalString) {
+        String input = originalString.substring(0, originalString.length() - 1);
+
+        String[] inputSplitOnSpaces = input.split(" ", 5);
+
+        String command = inputSplitOnSpaces[0]; // already verified
+        String from = inputSplitOnSpaces[1]; // should be "from"
+        String tableName = inputSplitOnSpaces[2]; // name of table
+
+        if (!from.equals("from")) {
+            System.out.println("---ERROR---");
+            System.out.println("Bad delete command format\n");
+            return;
+        }
+
+        if (inputSplitOnSpaces.length != 3 && inputSplitOnSpaces.length != 5) {
+            System.out.println("---ERROR---");
+            System.out.println("Bad delete command format\n");
+            return;
+        }
+
+        Schema schema = this.storageManager.getCatalog().getSchemaByName(tableName);
+
+        if (inputSplitOnSpaces.length == 3) {
+            // delete all items from db
+            System.out.println("True");
+            return;
+        }
+
+        String where = inputSplitOnSpaces[3]; // should be "where"
+        String logic = inputSplitOnSpaces[4]; // condition
+
+        if (!where.equals("where")) {
+            System.out.println("---ERROR---");
+            System.out.println("Bad delete command format\n");
+            return;
+        }
+
+        if (!isValidCondition(logic, schema)) {
+            System.out.println("Invalid format of where statement\n");
+            return;
+        }
+
+        this.storageManager.delete(tableName, logic);
+    }
+
+    private boolean isValidCondition(String condition, Schema schema) {
+        String[] conditions = condition.split("(?i)\\s+(and|or)\\s+");
+        for (String cond : conditions) {
+            String[] parts = cond.split("\\s+");
+            if (parts.length != 3) {
+                return false;
+            }
+            String left = parts[0];
+            String op = parts[1];
+            String right = parts[2];
+
+            if (!isValidValue(left, schema) || !isValidOperator(op) || !isValidValue(right, schema)) {
+                System.out.println("---ERROR---");
+                if (!isValidValue(left, schema)) {
+                    System.out.println(left + " is not a valid attribute name or value");
+                }
+                if (!isValidOperator(op)) {
+                    System.out.println(op + " is not a valid operator");
+                }
+                if (!isValidValue(right, schema)) {
+                    System.out.println(right + " is not a valid attribute name or value");
+                }
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean isValidOperator(String op) {
+        return op.matches("[<>!=]=?");
+    }
+
+    private boolean isValidValue(String val, Schema schema) {
+        if (val.matches("true|false")) {
+            return true;
+        }
+        if (val.matches("[a-zA-Z]\\w*")) {
+            return schema.isAtributeInSchema(val);
+        }
+        return val.matches("(\\d+|\\d+\\.\\d+|\"[^\"]*\")");
+    }
+
     private void display(String originalString) {
         String input = originalString.substring(0, originalString.length() - 1);
 
@@ -842,6 +931,9 @@ public class InputHandler {
                 break;
             case "select":
                 select(originalString);
+                break;
+            case "delete":
+                delete(originalString);
                 break;
             case "insert":
                 insertRecord(originalString);
