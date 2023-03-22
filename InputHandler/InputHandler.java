@@ -738,40 +738,96 @@ public class InputHandler {
     }
 
     private void select(String originalString) {
+        boolean isWhere = false;
+        boolean isOrderby = false;
+
+        String selectAttr = "";
+        String fromTableNames = "";
+        String whereConditions = "";
+        String orderbyAttr = "";
+
         String input = originalString.substring(0, originalString.length() - 1);
 
-        String[] inputSplitOnSpaces = input.split(" ");
+        String[] inputSelect = input.split("select"); // inputSelect = [[], ["att from t1,....""]]
 
-        if (inputSplitOnSpaces.length != 4) {
+        if (inputSelect.length == 1) { // [["invalid statement"]]
+             System.out.println("---ERROR---");
+            System.out.println("Invalid select command\n");
+            return;
+        }
+
+
+        String[] inputSelectFrom = inputSelect[1].split("from"); // inputSelectFrom = [["att"], ["t1, t2 where conditions orderby ...]]
+
+        if (inputSelectFrom.length == 1) { // [["invalid statement"]]
             System.out.println("---ERROR---");
             System.out.println("Invalid select command\n");
             return;
         }
 
-        if (!inputSplitOnSpaces[2].equals("from")) {
-            System.out.println("---ERROR---");
-            System.out.println("Invalid select command\n");
-            return;
+
+        selectAttr = inputSelectFrom[0]; // selectAttr = "att"
+
+        String[] inputFromWhere = inputSelectFrom[1].split("where"); 
+
+        if (inputFromWhere.length == 2) { // inputFromWhere = [["t1, t2"],["conditions orderby ..."]]
+            isWhere = true;
+            fromTableNames = inputFromWhere[0]; // fromTableNames = "t1, t2"
+            String[] inputWhereOrderby = inputFromWhere[1].split("orderby");
+            if (inputWhereOrderby.length == 2) { // inputWhereOrderby = [[conditions], [att]]
+                isOrderby = true;
+                whereConditions = inputWhereOrderby[0];
+                orderbyAttr = inputWhereOrderby[1];
+            }
+            else { // inputWhereOrderby = [conditions];
+                isOrderby = false;
+                whereConditions = inputWhereOrderby[0];
+            }
+        }
+        else { // inputFromWhere = [["t1, t2 orderby ..."]]
+            isWhere = false;
+            String[] inputFromOrderby = inputFromWhere[1].split("orderby");
+            if (inputFromOrderby.length == 2) { // inputFromOrderby = [["t1, t2"], ["att"]]
+                isOrderby = true;
+                fromTableNames = inputFromOrderby[0];
+                orderbyAttr = inputFromOrderby[1];
+            }
+            else { // inputFromOrderby = [["t1, t2"]];
+                isOrderby = false;
+                fromTableNames = inputFromOrderby[0];
+            }
         }
 
-        String args = inputSplitOnSpaces[1];
-        String tableName = inputSplitOnSpaces[3];
+        // select
+        selectCommand(selectAttr.trim().split(", "), fromTableNames.trim().split(", "), whereConditions.trim().split(", "), orderbyAttr.trim().split(", "));
 
-        if (!this.storageManager.getCatalog().doesTableNameExist(tableName)) {
-            System.out.println("---ERROR---");
-            System.out.println("Table " + tableName + " not found\n");
-            return;
-        }
+        // String[] inputSplitOnSpaces = input.split(" ");
 
-        // TODO: split attributes
-        if (!args.equals("*")) {
-            System.out.println("---ERROR---");
-            System.out.println("Only * attributes can be fetched\n");
-            return;
-        }
+        // if (inputSplitOnSpaces.length < 4) {
+        //     System.out.println("---ERROR---");
+        //     System.out.println("Invalid select command\n");
+        //     return;
+        // }
 
-        // TODO: will need to list of attributes
-        this.storageManager.select(args, tableName);
+
+        // String args = inputSplitOnSpaces[1];
+        // String tableName = inputSplitOnSpaces[3];
+
+        // if (!this.storageManager.getCatalog().doesTableNameExist(tableName)) {
+        //     System.out.println("---ERROR---");
+        //     System.out.println("Table " + tableName + " not found\n");
+        //     return;
+        // }
+
+        // // TODO: split attributes
+        // if (!args.equals("*")) {
+        //     System.out.println("---ERROR---");
+        //     System.out.println("Only * attributes can be fetched\n");
+        //     return;
+        // }
+
+        // // TODO: will need to list of attributes
+        // this.storageManager.select(args, tableName);
 
     }
 
