@@ -764,7 +764,7 @@ public class InputHandler {
 
 
         String[] inputSelectFrom = inputSelect[1].split("from"); // inputSelectFrom = [["att"], ["t1, t2 where conditions orderby ...]]
-
+        
         if (inputSelectFrom.length == 1) { // [["invalid statement"]]
             System.out.println("---ERROR---");
             System.out.println("Invalid select command\n");
