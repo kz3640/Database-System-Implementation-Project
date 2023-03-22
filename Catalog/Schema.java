@@ -193,4 +193,26 @@ public class Schema {
         File newFile = new File(newFileName);
         oldFile.renameTo(newFile);
     }
+
+    public boolean isAtributeInSchema(String val) {
+        for (SchemaAttribute schemaAttribute : attributes) {
+            if (schemaAttribute.getAttributeName().equals(val)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public int getIndexOfAttributeName(String attributeOrValue) {
+
+        int i = 0;
+        for (SchemaAttribute schemaAttribute : attributes) {
+            if (schemaAttribute.getAttributeName().equals(attributeOrValue)) {
+                return i;
+            }
+            i++;
+        }
+
+        return -1;
+    }
 }

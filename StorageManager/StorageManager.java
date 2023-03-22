@@ -11,6 +11,7 @@ import Record.RecordAttribute;
 import Catalog.Catalog;
 import Catalog.Schema;
 import Catalog.SchemaAttribute;
+import InputHandler.BooleanExpressionEvaluator;
 
 public class StorageManager {
     private Catalog catalog;
@@ -349,6 +350,106 @@ public class StorageManager {
         return true;
     }
 
+    public void delete(String tableName, String logic) {
+        // boolean result = BooleanExpressionEvaluator.evaluate(logic);
+
+        this.catalog.getSchemaByName(tableName);
+        Schema schema = this.catalog.getSchemaByName(tableName);
+
+        int pageIndex = 0;
+
+        while (true) {
+            int pagesInTable = this.pageBuffer.getTotalPages(schema);
+            if (pagesInTable <= pageIndex)
+                break;
+
+            Page page = this.pageBuffer.getPage(pageIndex, schema, true);
+
+            ArrayList<Record> newRecords = new ArrayList<>();
+            for (Record record : page.getRecords()) {
+                if (!BooleanExpressionEvaluator.evaluate(logic, record, schema)) {
+                    newRecords.add(record);
+                }
+            }
+
+            if (newRecords.size() == 0) {
+                pageBuffer.removePage(page);
+                removePage(page);
+                continue;
+            } else if (newRecords.size() != page.getRecords().size()) {
+                page.setRecords(newRecords);
+            }
+
+            pageIndex++;
+        }
+
+        // this.pageBuffer.updatePageTotal(schema, pagesLeft);
+        System.out.println("");
+    }
+
+    public void removePage(Page page) {
+        int lastPage = this.pageBuffer.getTotalPages(page.getSchema()) - 1;
+
+        int pageIndex = page.getPageID() + 1;
+
+        while (true) {
+            if (pageIndex > lastPage)
+                break;
+            Page pageToUpdate = this.pageBuffer.getPage(pageIndex, page.getSchema(), true);
+            pageToUpdate.decrementPageID();
+
+            if (pageIndex == lastPage) {
+                this.pageBuffer.updatePageTotal(pageToUpdate.getSchema(), pageToUpdate.getPageID());
+            }
+            pageIndex++;
+        }
+    }
+
+    public void update(String tableName, String col, String val, String logic) {
+        this.catalog.getSchemaByName(tableName);
+        Schema schema = this.catalog.getSchemaByName(tableName);
+
+        int pageIndex = 0;
+
+        while (true) {
+            int pagesInTable = this.pageBuffer.getTotalPages(schema);
+            if (pagesInTable <= pageIndex)
+                break;
+
+            Page page = this.pageBuffer.getPage(pageIndex, schema, true);
+
+            for (Record record : page.getRecords()) {
+                if (!BooleanExpressionEvaluator.evaluate(logic, record, schema)) {
+                    // needed for logic
+                    int indexOfPrimaryKey = schema.getIndexOfPrimaryKey();
+                    String nameOfPrimaryAttribute = schema.getAttributes().get(indexOfPrimaryKey).getAttributeName();
+                    RecordAttribute recordAttribute = record.getData().get(schema.getIndexOfPrimaryKey());
+                    String valueOfPrimaryString = recordAttribute.getAttribute().toString();
+
+                    // new logic for deleting
+                    String logicString =  nameOfPrimaryAttribute + " = " + valueOfPrimaryString;
+                    delete(tableName, logicString);
+
+                    // update record
+                }
+            }
+
+            // if (newRecords.size() == 0) {
+            //     pageBuffer.removePage(page);
+            //     removePage(page);
+            //     continue;
+            // } else if (newRecords.size() != page.getRecords().size()) {
+            //     page.setRecords(newRecords);
+            // }
+
+            pageIndex++;
+        }
+
+        // this.pageBuffer.updatePageTotal(schema, pagesLeft);
+        System.out.println("");
+
+    }
+
     // empty buffer
     public void writeBuffer() throws IOException {
         pageBuffer.clearBuffer();
@@ -357,4 +458,5 @@ public class StorageManager {
     public void printBuffer() {
         pageBuffer.printBuffer();
     }
+
 }

@@ -216,6 +216,7 @@ public class BinaryWriter {
                     raf.read(bytesToSkipOver);
 
                     raf.write(remainingBytes);
+                    raf.setLength(raf.getFilePointer());
                     return;
                 }
 
@@ -358,5 +359,21 @@ public class BinaryWriter {
 
         // truncate the file to remove the bytes we don't want
         raf.setLength(raf.getFilePointer());
+    }
+
+    public void updatePageTotal(Schema schema, int pagesLeft) {
+        String fileName = this.catalog.getPath() + schema.getIndex() + "database.txt";
+
+        try (RandomAccessFile raf = new RandomAccessFile(fileName, "rw")) {
+            raf.seek(0);
+            raf.writeInt(pagesLeft);
+
+            int skipBytes = ((pagesLeft) * this.catalog.getPageSize()) + 4;
+            raf.seek(skipBytes);
+            raf.setLength(raf.getFilePointer());
+            raf.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

@@ -153,6 +153,19 @@ public class PageBuffer {
         return recordAmmount;
     }
 
+    public void updatePageTotal(Schema schema, int pagesLeft) {
+        this.writer.updatePageTotal(schema, pagesLeft);
+    }
+
+    public void removePage(Page pageToRemove) {
+        for (int i = 0; i < this.pageBuffer.size(); i++) {
+            Page page = this.pageBuffer.get(i);
+            if (page.getPageID() == pageToRemove.getPageID() && page.getFileName().equals(pageToRemove.getFileName())) {
+                this.pageBuffer.remove(page);
+            }
+        }
+    }
+
     // debugging
     public void printBuffer() {
         System.out.println("PAGE BUFFER");
