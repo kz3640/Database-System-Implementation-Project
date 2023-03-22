@@ -807,23 +807,24 @@ public class InputHandler {
         // selectCommand(["att1","att2"..], ["t1","t2"..], ["c1","c2"..]/[], ["att1","att2"..]/[]);
         validateSelectAttributes(selectAttr.trim().split(", "), fromTableNames.trim().split(", "), whereConditions.trim().split(", "), orderbyAttr.trim().split(", "));
 
-
-        // if (!this.storageManager.getCatalog().doesTableNameExist(tableName)) {
-        //     System.out.println("---ERROR---");
-        //     System.out.println("Table " + tableName + " not found\n");
-        //     return;
-        // }
-
-        // // TODO: split attributes
-        // if (!args.equals("*")) {
-        //     System.out.println("---ERROR---");
-        //     System.out.println("Only * attributes can be fetched\n");
-        //     return;
-        // }
-
         // // TODO: will need to list of attributes
          this.storageManager.select(sAttributes, tableNames, conditions, oAttributes);
 
+    }
+
+    private boolean validateSelectAttributes(String[] sAttributes, String[] tableNames, String[] conditions, String[] oAttributes) {
+        for (int i = 0; i < tableNames.length; i++) { // validating table names
+            if (!this.storageManager.getCatalog().doesTableNameExist(tableNames[i])) {
+                    System.out.println("---ERROR---");
+                    System.out.println("Table " + tableNames[i] + " not found\n");
+                    return false;
+                }
+        }
+
+        // validate sAttributes? (multitables)
+        // validate where (multitables)
+        // validate orderby (multitables)
+        return true;
     }
 
     private void delete(String originalString) {
