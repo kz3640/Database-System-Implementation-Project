@@ -752,7 +752,6 @@ public class InputHandler {
         String fromTableNames = "";
         String whereConditions = "";
         String orderbyAttr = "";
-
         String input = originalString.substring(0, originalString.length() - 1);
 
         String[] inputSelect = input.split("select"); // inputSelect = [[], ["att from t1,....""]]
