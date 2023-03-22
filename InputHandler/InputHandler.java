@@ -781,6 +781,10 @@ public class InputHandler {
 
         String[] inputSplitOnSpaces = input.split(" ", 5);
 
+        if (inputSplitOnSpaces.length < 3) {
+            return;
+        }
+
         String command = inputSplitOnSpaces[0]; // already verified
         String from = inputSplitOnSpaces[1]; // should be "from"
         String tableName = inputSplitOnSpaces[2]; // name of table
@@ -824,6 +828,62 @@ public class InputHandler {
         }
 
         this.storageManager.delete(tableName, logic);
+    }
+
+
+    private void update(String originalString) {
+        String input = originalString.substring(0, originalString.length() - 1);
+
+        String[] inputSplitOnSpaces = input.split(" ", 8);
+
+        if (inputSplitOnSpaces.length < 7) {
+            return;
+        }
+
+        String command = inputSplitOnSpaces[0]; // already verified
+        String tableName = inputSplitOnSpaces[1]; // table name
+        String set = inputSplitOnSpaces[2]; // should be set
+        String col = inputSplitOnSpaces[3]; // col name
+        String equals = inputSplitOnSpaces[4]; // =
+        String val = inputSplitOnSpaces[5]; // value
+
+        Schema schema = this.storageManager.getCatalog().getSchemaByName(tableName);
+        if (schema == null)
+            return;
+
+        if ((!set.equals("set")) || (!equals.equals("="))) {
+            System.out.println("---ERROR---");
+            System.out.println("Bad update command format\n");
+            return;
+        }
+
+        if (inputSplitOnSpaces.length == 6) {
+            // update all items from db
+            this.storageManager.update(tableName, col, val, "true");
+            return;
+        }
+
+        if (inputSplitOnSpaces.length != 8) {
+            System.out.println("---ERROR---");
+            System.out.println("Bad update command format\n");
+            return;
+        }
+
+        String where = inputSplitOnSpaces[6]; // should be "where"
+        String logic = inputSplitOnSpaces[7]; // condition
+
+        if (!where.equals("where")) {
+            System.out.println("---ERROR---");
+            System.out.println("Bad delete command format\n");
+            return;
+        }
+
+        if (!isValidCondition(logic, schema)) {
+            System.out.println("Invalid format of where statement\n");
+            return;
+        }
+
+        this.storageManager.update(tableName, col, val, logic);
     }
 
     private boolean isValidCondition(String condition, Schema schema) {
@@ -938,6 +998,9 @@ public class InputHandler {
                 break;
             case "delete":
                 delete(originalString);
+                break;
+            case "update":
+                update(originalString);
                 break;
             case "insert":
                 insertRecord(originalString);

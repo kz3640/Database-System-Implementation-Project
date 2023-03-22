@@ -391,7 +391,7 @@ public class StorageManager {
         int lastPage = this.pageBuffer.getTotalPages(page.getSchema()) - 1;
 
         int pageIndex = page.getPageID() + 1;
-        
+
         while (true) {
             if (pageIndex > lastPage)
                 break;
@@ -405,6 +405,51 @@ public class StorageManager {
         }
     }
 
+    public void update(String tableName, String col, String val, String logic) {
+        this.catalog.getSchemaByName(tableName);
+        Schema schema = this.catalog.getSchemaByName(tableName);
+
+        int pageIndex = 0;
+
+        while (true) {
+            int pagesInTable = this.pageBuffer.getTotalPages(schema);
+            if (pagesInTable <= pageIndex)
+                break;
+
+            Page page = this.pageBuffer.getPage(pageIndex, schema, true);
+
+            for (Record record : page.getRecords()) {
+                if (!BooleanExpressionEvaluator.evaluate(logic, record, schema)) {
+                    // needed for logic
+                    int indexOfPrimaryKey = schema.getIndexOfPrimaryKey();
+                    String nameOfPrimaryAttribute = schema.getAttributes().get(indexOfPrimaryKey).getAttributeName();
+                    RecordAttribute recordAttribute = record.getData().get(schema.getIndexOfPrimaryKey());
+                    String valueOfPrimaryString = recordAttribute.getAttribute().toString();
+
+                    // new logic for deleting
+                    String logicString =  nameOfPrimaryAttribute + " = " + valueOfPrimaryString;
+                    delete(tableName, logicString);
+
+                    // update record
+                }
+            }
+
+            // if (newRecords.size() == 0) {
+            //     pageBuffer.removePage(page);
+            //     removePage(page);
+            //     continue;
+            // } else if (newRecords.size() != page.getRecords().size()) {
+            //     page.setRecords(newRecords);
+            // }
+
+            pageIndex++;
+        }
+
+        // this.pageBuffer.updatePageTotal(schema, pagesLeft);
+        System.out.println("");
+
+    }
+
     // empty buffer
     public void writeBuffer() throws IOException {
         pageBuffer.clearBuffer();
@@ -413,4 +458,5 @@ public class StorageManager {
     public void printBuffer() {
         pageBuffer.printBuffer();
     }
+
 }
