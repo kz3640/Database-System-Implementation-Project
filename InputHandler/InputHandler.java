@@ -747,16 +747,31 @@ public class InputHandler {
         String whereConditions = "";
         String orderbyAttr = "";
 
+        boolean isWhere = false;
+        boolean isOrderby = false;
+
+        String selectAttr = "";
+        String fromTableNames = "";
+        String whereConditions = "";
+        String orderbyAttr = "";
+
         String input = originalString.substring(0, originalString.length() - 1);
 
         String[] inputSelect = input.split("select"); // inputSelect = [[], ["att from t1,....""]]
+        String[] inputSelect = input.split("select"); // inputSelect = [[], ["att from t1,....""]]
 
+        if (inputSelect.length == 1) { // [["invalid statement"]]
+             System.out.println("---ERROR---");
         if (inputSelect.length == 1) { // [["invalid statement"]]
              System.out.println("---ERROR---");
             System.out.println("Invalid select command\n");
             return;
         }
 
+
+        String[] inputSelectFrom = inputSelect[1].split("from"); // inputSelectFrom = [["att"], ["t1, t2 where conditions orderby ...]]
+
+        if (inputSelectFrom.length == 1) { // [["invalid statement"]]
 
         String[] inputSelectFrom = inputSelect[1].split("from"); // inputSelectFrom = [["att"], ["t1, t2 where conditions orderby ...]]
 
