@@ -186,8 +186,6 @@ public class StorageManager {
                 break;
 
             Page page = this.pageBuffer.getPage(pageIndex, schema, true);
-
-            System.out.println(page.getRecords().size());
             page.printPage();
 
             pageIndex++;
@@ -347,11 +345,13 @@ public class StorageManager {
         return true;
     }
 
-    public void delete(String tableName, String logic) {
+    public boolean delete(String tableName, String logic) {
         this.catalog.getSchemaByName(tableName);
         Schema schema = this.catalog.getSchemaByName(tableName);
 
         int pageIndex = 0;
+
+        int recordsDeleted = 0;
 
         while (true) {
             int pagesInTable = this.pageBuffer.getTotalPages(schema);
@@ -364,6 +364,8 @@ public class StorageManager {
             for (Record record : page.getRecords()) {
                 if (!BooleanExpressionEvaluator.evaluate(logic, record, schema)) {
                     newRecords.add(record);
+                } else {
+                    recordsDeleted++;
                 }
             }
 
@@ -378,7 +380,8 @@ public class StorageManager {
             pageIndex++;
         }
 
-        return;
+        System.out.println(recordsDeleted + " record(s) deleted.");
+        return true;
     }
 
     private boolean deleteSingleRecord(String tableName, String logic) {
@@ -434,12 +437,12 @@ public class StorageManager {
         }
     }
 
-    public void update(String tableName, String col, String val, String logic) {
+    public boolean update(String tableName, String col, String val, String logic) {
         this.catalog.getSchemaByName(tableName);
         Schema schema = this.catalog.getSchemaByName(tableName);
 
         int pageIndex = 0;
-
+        int recordsUpdated = 0;
         while (true) {
             int pagesInTable = this.pageBuffer.getTotalPages(schema);
             if (pagesInTable <= pageIndex)
@@ -476,27 +479,26 @@ public class StorageManager {
                     if (!(doesRecordFollowConstraints(updatedRecord, tableName) && schema.doesRecordFollowSchema(updatedRecord))) {
                         // if it fails to add after
                         addRecord(record, schema);
-                        return;
+                        System.out.println("Unable to update record: ");
+                        record.printRecord();
+                        System.out.println(recordsUpdated + " records updated.");
+                        return false;
                     }
-
-                    
-                    // if the record can be added then we delete then add it back
-
 
                     // record is now updated
                     addRecord(updatedRecord, schema);
+                    recordsUpdated++;
                 }
-                System.out.println(page.getRecords().size());
             }
 
             if (!wasPageDeleted) {
                 pageIndex++;
-
             }
 
         }
 
-        // this.pageBuffer.updatePageTotal(schema, pagesLeft);
+        System.out.println(recordsUpdated + " records updated.");
+        return true;
     }
 
     // empty buffer

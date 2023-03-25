@@ -110,12 +110,17 @@ public class Main {
         StringBuilder output = new StringBuilder();
         input = input.trim();
         boolean insideQuotes = false;
+        boolean prevCharWasSpace = false;
         for (int i = 0; i < input.length(); i++) {
             char c = input.charAt(i);
             if (c == '\"') {
                 insideQuotes = !insideQuotes;
                 output.append(c);
             } else if (!insideQuotes) {
+                if (prevCharWasSpace && c == ' ') {
+                    continue;
+                }
+                prevCharWasSpace = c == ' ';
                 output.append(Character.toLowerCase(c));
             } else {
                 output.append(c);
