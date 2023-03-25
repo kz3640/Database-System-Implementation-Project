@@ -187,7 +187,8 @@ public class BinaryReader {
             int junkDataSize = raf.readInt();
             int bytesToRead = this.catalog.getPageSize() - junkDataSize - 8;
             Page page = readPage(raf, bytesToRead, pageId, schema);
-
+            
+            raf.close();
             return page;
         } catch (IOException e) {
             return null;

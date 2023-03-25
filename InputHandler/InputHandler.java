@@ -318,6 +318,12 @@ public class InputHandler {
     private boolean dropTableCommand(String input) {
         String[] inputSplitOnSpaces = input.split(" ", 3);
 
+        if (inputSplitOnSpaces.length != 3) {
+            System.out.println("---ERROR---");
+            System.out.println("invalid drop command\n");
+            return false;
+        }
+
         String command = inputSplitOnSpaces[0]; // already verified
         String tableKeyWord = inputSplitOnSpaces[1]; // should be "table"
         String tableName = inputSplitOnSpaces[2]; // foo(attr1 x x ....)
@@ -715,7 +721,7 @@ public class InputHandler {
                 break;
             }
 
-            if (storageManager.doesRecordFollowConstraints(record, tableName)) {
+            if (!storageManager.doesRecordFollowConstraints(record, tableName)) {
                 wasErrors = true;
                 break;
             }
@@ -809,7 +815,10 @@ public class InputHandler {
 
         if (inputSplitOnSpaces.length == 3) {
             // delete all items from db
-            this.storageManager.delete(tableName, "true");
+
+            if (this.storageManager.delete(tableName, "true")) {
+                System.out.println("SUCCESS!");
+            }
             return;
         }
 
@@ -827,7 +836,9 @@ public class InputHandler {
             return;
         }
 
-        this.storageManager.delete(tableName, logic);
+        if (this.storageManager.delete(tableName, logic)) {
+            System.out.println("SUCCESS!");
+        }
     }
 
 
@@ -836,7 +847,9 @@ public class InputHandler {
 
         String[] inputSplitOnSpaces = input.split(" ", 8);
 
-        if (inputSplitOnSpaces.length < 7) {
+        if (inputSplitOnSpaces.length < 6) {
+            System.out.println("---ERROR---");
+            System.out.println("Bad update command format\n");
             return;
         }
 
@@ -859,7 +872,8 @@ public class InputHandler {
 
         if (inputSplitOnSpaces.length == 6) {
             // update all items from db
-            this.storageManager.update(tableName, col, val, "true");
+            if (this.storageManager.update(tableName, col, val, "true"))
+                System.out.println("SUCCESS!");
             return;
         }
 
@@ -883,8 +897,10 @@ public class InputHandler {
             return;
         }
 
-        this.storageManager.update(tableName, col, val, logic);
+        if (this.storageManager.update(tableName, col, val, logic))
+            System.out.println("SUCCESS!");
     }
+
 
     private boolean isValidCondition(String condition, Schema schema) {
         String[] conditions = condition.split("(?i)\\s+(and|or)\\s+");

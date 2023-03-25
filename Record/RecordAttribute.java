@@ -23,4 +23,8 @@ public class RecordAttribute {
     public Class<?> getType() {
         return type;
     }
+
+    public void setNewAttributeValue(Object attribute) {
+        this.attribute = attribute;
+    }
 }
