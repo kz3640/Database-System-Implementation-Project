@@ -2,8 +2,17 @@ CSCI.421.01/02 - Database System Implementation Project
 
 Christian Louria
 Andrew Dorrell
-Saaksh D'Souza
+Saakshi D'Souza
 Kaiming Zhang
+
+
+
+Bugs
+
+No success on delete
+Weird double space on delete
+
+
 
 
 Compiling (Java 17)

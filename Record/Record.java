@@ -13,6 +13,14 @@ public class Record {
         this.tableName = tableName;
     }
 
+    public Record(Record otherRecord) {
+        this.data = new ArrayList<>(otherRecord.getData().size());
+        for (RecordAttribute attribute : otherRecord.getData()) {
+            this.data.add(new RecordAttribute(attribute.getType(), attribute.getAttribute(), attribute.getCharLength()));
+        }
+        this.tableName = otherRecord.getTableName();
+    }
+
     public String getTableName() {
         return tableName;
     }

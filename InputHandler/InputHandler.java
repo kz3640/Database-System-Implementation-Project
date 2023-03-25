@@ -318,6 +318,12 @@ public class InputHandler {
     private boolean dropTableCommand(String input) {
         String[] inputSplitOnSpaces = input.split(" ", 3);
 
+        if (inputSplitOnSpaces.length != 3) {
+            System.out.println("---ERROR---");
+            System.out.println("invalid drop command\n");
+            return false;
+        }
+
         String command = inputSplitOnSpaces[0]; // already verified
         String tableKeyWord = inputSplitOnSpaces[1]; // should be "table"
         String tableName = inputSplitOnSpaces[2]; // foo(attr1 x x ....)
@@ -715,7 +721,7 @@ public class InputHandler {
                 break;
             }
 
-            if (storageManager.doesRecordFollowConstraints(record, tableName)) {
+            if (!storageManager.doesRecordFollowConstraints(record, tableName)) {
                 wasErrors = true;
                 break;
             }
@@ -883,8 +889,14 @@ public class InputHandler {
             return;
         }
 
+        // String newLogic = removeRedundantLogic(val, logic);
+
         this.storageManager.update(tableName, col, val, logic);
     }
+
+    // private String removeRedundantLogic(String val, String logic) {
+    //     if ()
+    // }
 
     private boolean isValidCondition(String condition, Schema schema) {
         String[] conditions = condition.split("(?i)\\s+(and|or)\\s+");

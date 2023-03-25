@@ -29,6 +29,7 @@ public class BinaryWriter {
         try (RandomAccessFile raf = new RandomAccessFile(fileName, "rw")) {
             raf.writeInt(pageSize);
             raf.writeInt(0);
+            raf.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -48,6 +49,7 @@ public class BinaryWriter {
             // go to end of file to write the information
             raf.seek(raf.length());
             addSchemaToPosition(raf, raf.getFilePointer(), schema);
+            raf.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -150,6 +152,7 @@ public class BinaryWriter {
 
             byte[] junk = new byte[junkSpace];
             raf.write(junk);
+            raf.close();
         } catch (IOException e) {
             e.printStackTrace();
         }

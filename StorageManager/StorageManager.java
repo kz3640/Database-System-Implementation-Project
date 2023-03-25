@@ -8,6 +8,7 @@ import Buffer.PageBuffer;
 import Buffer.Page;
 import Record.Record;
 import Record.RecordAttribute;
+import Util.Util;
 import Catalog.Catalog;
 import Catalog.Schema;
 import Catalog.SchemaAttribute;
@@ -186,6 +187,7 @@ public class StorageManager {
 
             Page page = this.pageBuffer.getPage(pageIndex, schema, true);
 
+            System.out.println(page.getRecords().size());
             page.printPage();
 
             pageIndex++;
@@ -230,19 +232,19 @@ public class StorageManager {
             if (page.isPrimaryKeyInPage(record)) {
                 System.out.println("---ERROR---");
                 System.out.println("Primary key is already in use\n");
-                return true;
+                return false;
             }
 
             if (!page.isUniqueValueUnique(record)) {
                 System.out.println("---ERROR---");
                 System.out.println("Value is not unique\n");
-                return true;
+                return false;
             }
 
             pageIndex++;
         }
 
-        return false;
+        return true;
     }
 
     public boolean dropTable(Schema schema) {
@@ -250,11 +252,6 @@ public class StorageManager {
         pageBuffer.writer.deleteFile(schema);
         pageBuffer.writer.removeTableFromCatalog(schema);
         return true;
-    }
-
-    private Object getDefaultValue(String defaultString, String typeAsString) {
-
-        return null;
     }
 
     private Record convertRecord(Schema oldSchema, Schema newSchema, Record record) {
@@ -304,6 +301,7 @@ public class StorageManager {
         pageBuffer.clearBuffer();
         oldSchema.convertToTemp();
         pageBuffer.writer.initDB(newSchema);
+        this.catalog.addSchema(newSchema);
 
         // loop over every page
         int pageIndex = 0;
@@ -326,7 +324,6 @@ public class StorageManager {
         }
 
         oldSchema.remove();
-        this.catalog.addSchema(newSchema);
         this.pageBuffer.writer.alterTable(newSchema);
         return true;
     }
@@ -351,8 +348,6 @@ public class StorageManager {
     }
 
     public void delete(String tableName, String logic) {
-        // boolean result = BooleanExpressionEvaluator.evaluate(logic);
-
         this.catalog.getSchemaByName(tableName);
         Schema schema = this.catalog.getSchemaByName(tableName);
 
@@ -383,8 +378,42 @@ public class StorageManager {
             pageIndex++;
         }
 
-        // this.pageBuffer.updatePageTotal(schema, pagesLeft);
-        System.out.println("");
+        return;
+    }
+
+    private boolean deleteSingleRecord(String tableName, String logic) {
+        this.catalog.getSchemaByName(tableName);
+        Schema schema = this.catalog.getSchemaByName(tableName);
+
+        int pageIndex = 0;
+
+        while (true) {
+            int pagesInTable = this.pageBuffer.getTotalPages(schema);
+            if (pagesInTable <= pageIndex)
+                break;
+
+            Page page = this.pageBuffer.getPage(pageIndex, schema, true);
+
+            ArrayList<Record> newRecords = new ArrayList<>();
+            for (Record record : page.getRecords()) {
+                if (!BooleanExpressionEvaluator.evaluate(logic, record, schema)) {
+                    newRecords.add(record);
+                }
+            }
+
+            if (newRecords.size() == 0) {
+                pageBuffer.removePage(page);
+                removePage(page);
+                return true;
+            } else if (newRecords.size() != page.getRecords().size()) {
+                page.setRecords(newRecords);
+                return false;
+            }
+
+            pageIndex++;
+        }
+
+        return false;
     }
 
     public void removePage(Page page) {
@@ -418,36 +447,56 @@ public class StorageManager {
 
             Page page = this.pageBuffer.getPage(pageIndex, schema, true);
 
+            boolean wasPageDeleted = false;
             for (Record record : page.getRecords()) {
-                if (!BooleanExpressionEvaluator.evaluate(logic, record, schema)) {
+                if (BooleanExpressionEvaluator.evaluate(logic, record, schema)) {
+                    Record updatedRecord = new Record(record);
+
                     // needed for logic
                     int indexOfPrimaryKey = schema.getIndexOfPrimaryKey();
                     String nameOfPrimaryAttribute = schema.getAttributes().get(indexOfPrimaryKey).getAttributeName();
-                    RecordAttribute recordAttribute = record.getData().get(schema.getIndexOfPrimaryKey());
+                    RecordAttribute recordAttribute = updatedRecord.getData().get(schema.getIndexOfPrimaryKey());
                     String valueOfPrimaryString = recordAttribute.getAttribute().toString();
 
                     // new logic for deleting
                     String logicString =  nameOfPrimaryAttribute + " = " + valueOfPrimaryString;
-                    delete(tableName, logicString);
 
                     // update record
+                    int indexOfAttribute = schema.getIndexOfAttributeName(col);
+                    String AttributeTypeAsString = schema.getAttributes().get(indexOfAttribute).getTypeAsString();
+                    RecordAttribute recordAttributeToChange = updatedRecord.getData().get(indexOfAttribute);
+                    Object o = recordAttributeToChange.getAttribute();
+                    if (o.equals(Util.convertToType(AttributeTypeAsString, val))) {
+                        continue;
+                    }
+                    recordAttributeToChange.setNewAttributeValue(Util.convertToType(AttributeTypeAsString, val));
+
+                    wasPageDeleted = deleteSingleRecord(tableName, logicString);
+
+                    if (!(doesRecordFollowConstraints(updatedRecord, tableName) && schema.doesRecordFollowSchema(updatedRecord))) {
+                        // if it fails to add after
+                        addRecord(record, schema);
+                        return;
+                    }
+
+                    
+                    // if the record can be added then we delete then add it back
+
+
+                    // record is now updated
+                    addRecord(updatedRecord, schema);
                 }
+                System.out.println(page.getRecords().size());
             }
 
-            // if (newRecords.size() == 0) {
-            //     pageBuffer.removePage(page);
-            //     removePage(page);
-            //     continue;
-            // } else if (newRecords.size() != page.getRecords().size()) {
-            //     page.setRecords(newRecords);
-            // }
+            if (!wasPageDeleted) {
+                pageIndex++;
 
-            pageIndex++;
+            }
+
         }
 
         // this.pageBuffer.updatePageTotal(schema, pagesLeft);
-        System.out.println("");
-
     }
 
     // empty buffer
