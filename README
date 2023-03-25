@@ -7,14 +7,6 @@ Kaiming Zhang
 
 
 
-Bugs
-
-No success on delete
-Weird double space on delete
-
-
-
-
 Compiling (Java 17)
 
 * Load project into IntelliJ and run Main.java
