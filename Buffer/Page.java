@@ -9,7 +9,7 @@ import Record.Record;
 import Record.RecordAttribute;
 import Util.Util;
 
-public class Page {
+public class    Page {
     ArrayList<Record> records;
 
     private String fileName;
