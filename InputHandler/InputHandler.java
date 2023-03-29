@@ -762,7 +762,7 @@ public class InputHandler {
              System.out.println("---ERROR---");
         if (inputSelect.length == 1) { // [["invalid statement"]]
              System.out.println("---ERROR---");
-            System.out.println("Invalid select command\n");
+            System.out.println("Invalid select query\n");
             return;
         }
 
@@ -771,7 +771,7 @@ public class InputHandler {
 
         if (inputSelectFrom.length == 1) { // ["invalid statement"]
             System.out.println("---ERROR---");
-            System.out.println("Invalid select command\n");
+            System.out.println("Invalid select query\n");
             return;
         }
 
@@ -809,10 +809,11 @@ public class InputHandler {
         }
 
         // selectCommand(["att1","att2"..], ["t1","t2"..], ["c1","c2"..]/[], ["att1","att2"..]/[]);
-        validateSelectAttributes(selectAttr.trim().split(", "), fromTableNames.trim().split(", "), whereConditions.trim().split(", "), orderbyAttr.trim().split(", "));
-
-        // // TODO: will need to list of attributes
-         this.storageManager.select(sAttributes, tableNames, conditions, oAttributes);
+        if (!validateSelectAttributes(selectAttr.trim().split(", "), fromTableNames.trim().split(", "), whereConditions.trim().split(", "), orderbyAttr.trim().split(", "))) {
+            return;
+        }
+        // // TODO: storage manager needs to handle lists of attributes
+        this.storageManager.select(sAttributes, tableNames, conditions, oAttributes);
 
     }
 
@@ -825,9 +826,117 @@ public class InputHandler {
                 }
         }
 
-        // validate sAttributes? (multitables)
-        // validate where (multitables)
+        Schema[] schemasUsed = new Schema[tableNames.length];
+        for (int i = 0; i < tableNames.length; i++) { // validating table names
+            schemasUsed[i] = this.storageManager.getCatalog().getSchemaByName(tableNames[i]);
+        }
+
+        // validate sAttributes
+        for (int i = 0; i < sAttributes.length; i++) { // validating column names
+            if (sAttributes.length > 1 && sAttributes[i].equals("*")) {
+                System.out.println("---ERROR---");
+                System.out.println("* attribute cannot be used with other attributes.");
+                return false;
+            }
+
+            String[] splitSAtt = sAttributes[i].split(".");
+            if (tableNames.length == 1) { // single table
+                if ( splitSAtt.length == 1) { // splitSAtt = attribute 
+                    if (schemasUsed[0].getIndexOfAttributeName(sAttributes[i]) == -1) {
+                        System.out.println("---ERROR---");
+                        System.out.println("select attribute " + sAttributes[i] + " not found\n");
+                        return false;
+                    }
+                }
+                else { // splitSAtt = tabename.attribute
+                    if (!splitSAtt[0].equals(tableNames[0])) {
+                        System.out.println("---ERROR---");
+                        System.out.println("table " + splitSAtt[0] + " in select attribute not found\n");
+                        return false;
+                    }
+                }
+            }
+            else { // multitables
+                Schema checkSchema = this.storageManager.getCatalog().getSchemaByName(splitSAtt[0]);
+                if (checkSchema == null){
+                    break;
+                }
+                if (checkSchema.getIndexOfAttributeName(splitSAtt[1]) == -1) {
+                    System.out.println("---ERROR---");
+                    System.out.println("select attribute " + sAttributes[i] + " not found\n");
+                    return false;
+                }
+            }
+        }
+
+        // validate where
+        for (int i = 0; i < schemasUsed.length; i++) {
+            if (tableNames.length == 1){ // single table
+                if (!isValidCondition(conditions.toString(), schemasUsed[0])) {
+                    System.out.println("---ERROR---");
+                    System.out.println("Invalid format of where statement\n");
+                    return false;
+                }
+            }
+            else { // multitables
+                if (!isValidConditionMultiTable(conditions.toString())) {
+                    System.out.println("---ERROR---");
+                    System.out.println("Invalid format of where statement\n");
+                    return false;
+                }
+            }
+        }
+
         // validate orderby (multitables)
+        String[] splitOAtt;
+       
+        for (int i = 0; i < oAttributes.length; i++) {
+            splitOAtt = oAttributes[i].split(".");
+            
+            if (schemasUsed.length == 1) { // single table
+                if (splitOAtt.length == 1){ // no . operator used - only one table 
+                    if (schemasUsed[0].getIndexOfAttributeName(splitOAtt[0]) != -1)
+                        continue;
+                    else{
+                        System.out.println("---ERROR---");
+                        System.out.println("orderby attribute " + oAttributes[i] + " not found \n");
+                        return false;
+                    }
+                }
+                else {
+                    if (!splitOAtt[0].equals(tableNames[0])) {
+                        System.out.println("---ERROR---");
+                        System.out.println("table " + splitOAtt[0] + " not found \n");
+                        return false;
+                    }
+                    if (schemasUsed[0].getIndexOfAttributeName(splitOAtt[1]) != -1)
+                        continue;
+                    else{
+                        System.out.println("---ERROR---");
+                        System.out.println("orderby attribute " + oAttributes[i] + " not found \n");
+                        return false;
+                    }
+                }
+            }
+            else { // multitables
+                if (splitOAtt.length == 1){
+                    System.out.println("---ERROR---");
+                    System.out.println("orderby table name for " + oAttributes[i] + " not specified \n");
+                    return false;
+                }
+                else {
+                    Schema schema = this.storageManager.getCatalog().getSchemaByName(splitOAtt[0]);
+                    if (schema.getIndexOfAttributeName(splitOAtt[1]) != -1)
+                        continue;
+                    else{
+                        System.out.println("---ERROR---");
+                        System.out.println("orderby attribute " + oAttributes[i] + " not found \n");
+                        return false;
+                    }
+                }
+            }
+            
+        }
         return true;
     }
 
@@ -973,6 +1082,40 @@ public class InputHandler {
                 if (!isValidValue(right, schema)) {
                     System.out.println(right + " is not a valid attribute name or value");
                 }
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean isValidConditionMultiTable(String condition) {
+        String[] conditions = condition.split("(?i)\\s+(and|or)\\s+");
+        for (String cond : conditions) {
+            String[] parts = cond.split("\\s+");
+            if (parts.length != 3) {
+                return false;
+            }
+            String[] left = parts[0].split(".");
+            String op = parts[1];
+            String[] right = parts[2].split(".");
+
+            if (!isValidValue(left[1], this.storageManager.getCatalog().getSchemaByName(left[0])) 
+                    || !isValidOperator(op) 
+                    || !isValidValue(right[1], this.storageManager.getCatalog().getSchemaByName(right[0]))) {
+
+                System.out.println("---ERROR---");
+                if (!isValidValue(left[1], this.storageManager.getCatalog().getSchemaByName(left[0]))) {
+                    System.out.println(left + " is not a valid attribute name or value");
+                }
+
+                if (!isValidOperator(op)) {
+                    System.out.println(op + " is not a valid operator");
+                }
+
+                if (!isValidValue(right[1], this.storageManager.getCatalog().getSchemaByName(right[0]))) {
+                    System.out.println(right + " is not a valid attribute name or value");
+                }
+
                 return false;
             }
         }
