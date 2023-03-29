@@ -745,19 +745,12 @@ public class InputHandler {
     }
 
     private void select(String originalString) {
-        boolean isWhere = false;
-        boolean isOrderby = false;
-
-        String selectAttr = "";
-        String fromTableNames = "";
-        String whereConditions = "";
-        String orderbyAttr = "";
         String input = originalString.substring(0, originalString.length() - 1);
 
         String[] inputSelect = input.split("select"); // inputSelect = [[], ["att from t1,....""]]
 
-        if (inputSelect.length == 1) { // [["invalid statement"]]
-             System.out.println("---ERROR---");
+        if (inputSplitOnSpaces.length != 4) {
+            System.out.println("---ERROR---");
             System.out.println("Invalid select command\n");
             return;
         }
