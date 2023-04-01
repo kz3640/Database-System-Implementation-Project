@@ -248,6 +248,18 @@ public class InputHandler {
         }
     }
 
+    /*
+     * Checks to see if string is a key word
+     * Used to verify if a table name or attribute is a valid word and is not bad
+     */
+    private boolean isKeyWord(String word) {
+        List<String> keyWords = List.of("integer", "double", "boolean", "char", "varchar", "create", "table", "record", "page",
+                                        "drop", "primarykey", "select", "from", "insert", "into", "values", "display", "info",
+                                        "unique", "notnull", "drop", "add", "default", "delete", "where", "and", "or", "update",
+                                        "set", "orderby", "*");
+        return keyWords.contains(word);
+    }
+
     private boolean createTableCommand(String input) {
         String[] inputSplitOnSpaces = input.split(" ", 3);
 
@@ -269,6 +281,14 @@ public class InputHandler {
         int rightIndex = tableNameAndAttributes.lastIndexOf(")");
         String tableName = tableNameAndAttributes.substring(0, leftIndex).trim();
         String attributes = tableNameAndAttributes.substring(leftIndex + 1, rightIndex);
+
+        // tableName is a resevered word
+        if (isKeyWord(tableName)) {
+            System.out.println("---ERROR---");
+            String tempString = String.format("Table name: %s is a reserved word\n", tableName);
+            System.out.println(tempString);
+            return false;
+        }
 
         // must have table name
         if (tableName.equals("")) {
@@ -299,6 +319,16 @@ public class InputHandler {
         // split the comma seperated list of attributes [attrName integer primarykey,
         // attrName2 double, ...]
         String[] attributeList = attributes.split(",");
+
+        // checks each attribute to see if it is a reserved word
+        for (int i = 0; i < attributeList.length; i++) {
+            if (isKeyWord(attributeList[i])) {
+                System.out.println("---ERROR---");
+                String tempString = String.format("Table name: %s is a reserved word\n", attributeList[i]);
+                System.out.println(tempString);
+                return false;
+            }
+        }
 
         ArrayList<SchemaAttribute> schemaAttributes = getAttributeList(attributeList);
 
