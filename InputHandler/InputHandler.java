@@ -759,7 +759,8 @@ public class InputHandler {
         String[] inputSelect = input.split("select"); // inputSelect = [[], ["att from t1,....""]]
 
         if (inputSelect.length == 1) { // [["invalid statement"]]
-             System.out.println("---ERROR---");
+            System.out.println("---ERROR---");
+        }
         if (inputSelect.length == 1) { // [["invalid statement"]]
              System.out.println("---ERROR---");
             System.out.println("Invalid select query\n");

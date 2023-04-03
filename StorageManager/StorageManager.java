@@ -172,6 +172,7 @@ public class StorageManager {
         pageBuffer.addPageToBuffer(newPage);
     }
 
+
     public void select(String args, String tableName) {
         this.catalog.getSchemaByName(tableName);
         Schema schema = this.catalog.getSchemaByName(tableName);
