@@ -11,8 +11,9 @@ public class ElementComparator implements Comparator<String[]> {
 
     public int compare(String[] a, String[] b) {
         // Cast the Strings to their expected types for comparison
-        Comparable objA = (Comparable) a[indexToCompare];
-        Comparable objB = (Comparable) b[indexToCompare];
-        return objA.compareTo(objB);
+        // Comparable objA = (Comparable) a[indexToCompare];
+        // Comparable objB = (Comparable) b[indexToCompare];
+        // return objA.compareTo(objB);
+        return 0;
     }
 }
