@@ -48,4 +48,8 @@ public class Char implements SchemaAttribute {
     public Object getDefault() {
         return this.defaultValue;
     }
+
+    public SchemaAttribute updateNameForJoin(String tableName) {
+        return new Char(tableName + "." + attributeName, length, isPrimaryKey, notNull, isUnique, defaultValue);
+    }
 }

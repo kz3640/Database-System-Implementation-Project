@@ -14,7 +14,8 @@ import Catalog.SchemaAttribute;
 import Util.Util;
 
 public class BinaryWriter {
-    private Catalog catalog;
+    protected Catalog catalog;
+    protected String dbName = "database.txt";
 
     public BinaryWriter() {
         return;
@@ -57,7 +58,8 @@ public class BinaryWriter {
 
     // create the initial db file with 0 pages
     public void initDB(Schema schema) {
-        String fileName = this.catalog.getPath() + schema.getIndex() + "database.txt";
+        System.out.println(dbName);
+        String fileName = this.catalog.getPath() + schema.getIndex() + dbName;
 
         File db = new File(fileName);
         try {
@@ -72,7 +74,7 @@ public class BinaryWriter {
 
     // write a record to the file. raf should be at the correct spot already
     public void writeRecordToFile(Record record, RandomAccessFile raf) throws IOException {
-        String fileName = this.catalog.getPath() + "database.txt";
+        String fileName = this.catalog.getPath() + dbName;
 
         int recordSize = record.calculateBytes();
         ArrayList<RecordAttribute> recordData = record.getData();
@@ -180,7 +182,7 @@ public class BinaryWriter {
     }
 
     public void deleteFile(Schema schema) {
-        String fileName = this.catalog.getPath() + schema.getIndex() + "database.txt";
+        String fileName = this.catalog.getPath() + schema.getIndex() + dbName;
         File file = new File(fileName);
         file.delete();
     }
@@ -335,8 +337,8 @@ public class BinaryWriter {
 
     public void renameFilesAfter(int index, int numFiles) {
         while (index < numFiles) {
-            String oldFileName = this.catalog.getPath() + index + "database.txt";
-            String newFileName = this.catalog.getPath() + (index - 1) + "database.txt";
+            String oldFileName = this.catalog.getPath() + index + dbName;
+            String newFileName = this.catalog.getPath() + (index - 1) + dbName;
             File oldFile = new File(oldFileName);
             File newFile = new File(newFileName);
             oldFile.renameTo(newFile);
@@ -365,7 +367,7 @@ public class BinaryWriter {
     }
 
     public void updatePageTotal(Schema schema, int pagesLeft) {
-        String fileName = this.catalog.getPath() + schema.getIndex() + "database.txt";
+        String fileName = this.catalog.getPath() + schema.getIndex() + dbName;
 
         try (RandomAccessFile raf = new RandomAccessFile(fileName, "rw")) {
             raf.seek(0);

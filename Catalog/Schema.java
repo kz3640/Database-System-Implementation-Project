@@ -215,4 +215,16 @@ public class Schema {
 
         return -1;
     }
+
+    public ArrayList<SchemaAttribute> getJoinedAttributeName() {
+        ArrayList<SchemaAttribute> newAttribtues = new ArrayList<>();
+
+        for (SchemaAttribute schemaAttribute : attributes) {
+
+            SchemaAttribute newAttribtue = schemaAttribute.updateNameForJoin(this.getTableName());
+            newAttribtues.add(newAttribtue);
+        }
+
+        return newAttribtues;
+    }
 }
