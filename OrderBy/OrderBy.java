@@ -1,4 +1,6 @@
 package OrderBy;
+import Catalog.Schema;
+import Catalog.SchemaAttribute;
 import Catalog.Table;
 import Record.Record;
 import Record.RecordAttribute;
@@ -12,32 +14,29 @@ public class OrderBy {
     public static ArrayList<OrderHandler> makeOrderHandler(ArrayList<String> in) {
         return null;
     }
-    public Table orderBy(Table in, ArrayList<OrderHandler> indexes) {
+    public Table orderBy(Table in, ArrayList<String> attributes) {
+        Schema schema = in.getSchema();
+        ArrayList<Integer> indexesOfAttributes = new ArrayList<>();
+        int indexOfAttribute = 0;
+        for (SchemaAttribute attribute : schema.getAttributes()) {
+            for (String attributeString : attributes) {
+                if (attribute.getAttributeName().equals(attributeString)) {
+                    indexesOfAttributes.add(indexOfAttribute);
+                }
+            }
+            indexOfAttribute++;
+        }
         ArrayList<Record> records = new ArrayList<>(in.getRecords()); // create a copy of the input records
-        records.sort(new RecordComparator(indexes)); // sort the records using the given indexes
+        records.sort(new RecordComparator(indexesOfAttributes)); // sort the records using the given indexes
         return new Table(records, in.getTableName(), in.getSchema()); // create and return a new table with the sorted records
     }
 
     //Schema.getattribute(i).getattributename(i)
     private class RecordComparator implements Comparator<Record> {
         private final ArrayList<Integer> indexes;
-        private final ArrayList<Integer> asc;
 
-        public RecordComparator(ArrayList<OrderHandler> indexes) {
-            ArrayList<Integer> orderIndexes = new ArrayList<>();
-            for (OrderHandler i : indexes) {
-                orderIndexes.add(i.getIndex());
-            }
-            this.indexes = orderIndexes;
-            
-            ArrayList<Integer> orderAsc = new ArrayList<>();
-            for (OrderHandler i : indexes) {
-                if (i.asc())
-                    orderAsc.add(1);
-                else 
-                    orderAsc.add(-1);
-            }
-            this.asc = orderAsc;
+        public RecordComparator(ArrayList<Integer> indexes) {
+            this.indexes = indexes;
         }
 
         @Override
@@ -51,35 +50,35 @@ public class OrderBy {
                     int val2 = (Integer) attr2.getAttribute();
                     int cmp = Integer.compare(val1, val2);
                     if (cmp != 0) {
-                        return cmp * asc.get(i);
+                        return cmp;
                     }
                 } else if (attr1.getType() == boolean.class) {
                     boolean val1 = (Boolean) attr1.getAttribute();
                     boolean val2 = (Boolean) attr2.getAttribute();
                     int cmp = Boolean.compare(val1, val2);
                     if (cmp != 0) {
-                        return cmp * asc.get(i);
+                        return cmp;
                     }
                 } else if (attr1.getType() == Character.class) {
                     String val1 = (String) attr1.getAttribute();
                     String val2 = (String) attr2.getAttribute();
                     int cmp = val1.compareTo(val2);
                     if (cmp != 0) {
-                        return cmp * asc.get(i);
+                        return cmp;
                     }
                 } else if (attr1.getType() == String.class) {
                     String val1 = (String) attr1.getAttribute();
                     String val2 = (String) attr2.getAttribute();
                     int cmp = val1.compareTo(val2);
                     if (cmp != 0) {
-                        return cmp * asc.get(i);
+                        return cmp;
                     }
                 } else if (attr1.getType() == double.class) {
                     double val1 = (Double) attr1.getAttribute();
                     double val2 = (Double) attr2.getAttribute();
                     int cmp = Double.compare(val1, val2);
                     if (cmp != 0) {
-                        return cmp * asc.get(i);
+                        return cmp;
                     }
                 }
             }
