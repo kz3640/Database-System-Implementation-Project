@@ -10,10 +10,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 
 public class OrderBy {
-
-    public static ArrayList<OrderHandler> makeOrderHandler(ArrayList<String> in) {
-        return null;
-    }
     public Table orderBy(Table in, ArrayList<String> attributes) {
         Schema schema = in.getSchema();
         ArrayList<Integer> indexesOfAttributes = new ArrayList<>();
