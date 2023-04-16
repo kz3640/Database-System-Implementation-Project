@@ -149,6 +149,6 @@ public class BooleanExpressionEvaluator {
         if (operator1 == operator2) {
             return true;
         } else
-            return operator1 == '|' && operator2 == '&';
+            return operator1 == '&' && operator2 == '|';
     }
 }

@@ -10,7 +10,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 
 public class OrderBy {
-    public Table orderBy(Table in, ArrayList<String> attributes) {
+    public static Table orderBy(Table in, ArrayList<String> attributes) {
         Schema schema = in.getSchema();
         ArrayList<Integer> indexesOfAttributes = new ArrayList<>();
         int indexOfAttribute = 0;
@@ -28,7 +28,7 @@ public class OrderBy {
     }
 
     //Schema.getattribute(i).getattributename(i)
-    private class RecordComparator implements Comparator<Record> {
+    private static class RecordComparator implements Comparator<Record> {
         private final ArrayList<Integer> indexes;
 
         public RecordComparator(ArrayList<Integer> indexes) {
@@ -79,23 +79,6 @@ public class OrderBy {
                 }
             }
             return 0;
-        }
-    }
-    private class OrderHandler {
-        private final int index;
-        private final boolean asc;
-
-        public OrderHandler(int i, boolean j) {
-            this.index = i;
-            this.asc = j;
-        }
-
-        public int getIndex() {
-            return index;
-        }
-
-        public boolean asc() {
-            return asc;
         }
     }
 }
