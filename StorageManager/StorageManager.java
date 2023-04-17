@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 
 import Buffer.PageBuffer;
+import CartesianProduct.CartesianProduct;
 import Buffer.Page;
 import Record.Record;
 import Record.RecordAttribute;
@@ -12,6 +13,7 @@ import Util.Util;
 import Catalog.Catalog;
 import Catalog.Schema;
 import Catalog.SchemaAttribute;
+import Catalog.Table;
 import InputHandler.BooleanExpressionEvaluator;
 
 public class StorageManager {
@@ -172,25 +174,51 @@ public class StorageManager {
         pageBuffer.addPageToBuffer(newPage);
     }
 
-    public void select(String args, String tableName) {
+
+    public void select(String[] selectAttr,  String[] fromTableNames,  String whereConditions,  String[] orderbyAttr) {
+        if (orderbyAttr != null) {
+            for (String string : orderbyAttr) {
+                System.out.println(string);
+            }
+        }
+
+        ArrayList<Table> allTables = new ArrayList<>();
+        for (String tableName : fromTableNames) {
+            ArrayList<Record> recordsInTable = getRecordsFromtable(tableName);
+            allTables.add(new Table(recordsInTable, tableName, catalog.getSchemaByName(tableName)));
+        }
+
+        Table finaltable = CartesianProduct.cartesianProduct(allTables, whereConditions, selectAttr);
+
+        finaltable.getSchema().printSchema();
+        System.out.println();
+        for (Record record : finaltable.getRecords()) {
+            record.printRecord();
+            System.out.println();
+        }
+    }
+
+    public ArrayList<Record> getRecordsFromtable(String tableName) {
         this.catalog.getSchemaByName(tableName);
         Schema schema = this.catalog.getSchemaByName(tableName);
 
-        schema.printSchema();
-
         int pageIndex = 0;
         int pagesInTable = this.pageBuffer.getTotalPages(schema);
-        System.out.println("");
+
+        ArrayList<Record> recordsInTable = new ArrayList<>();
         while (true) {
             if (pagesInTable <= pageIndex)
                 break;
 
             Page page = this.pageBuffer.getPage(pageIndex, schema, true);
-            page.printPage();
+
+            for (Record record : page.getRecords()) {
+                recordsInTable.add(record);
+            }
 
             pageIndex++;
         }
-        System.out.println("");
+        return recordsInTable;
     }
 
     // add record to db

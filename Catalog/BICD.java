@@ -57,4 +57,8 @@ public class BICD implements SchemaAttribute{
     public Object getDefault() {
         return this.defaultValue;
     }
+
+    public SchemaAttribute updateNameForJoin(String tableName) {
+        return new BICD(tableName + "." + attributeName, typeAsString, isPrimaryKey, notNull, isUnique, defaultValue);
+    }
 }

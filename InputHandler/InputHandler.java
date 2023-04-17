@@ -775,29 +775,26 @@ public class InputHandler {
     }
 
     private void select(String originalString) {
-        boolean isWhere = false;
-        boolean isOrderby = false;
-
         String selectAttr = "";
-        String fromTableNames = "";
-        String whereConditions = "";
-        String orderbyAttr = "";
-
 
         String input = originalString.substring(0, originalString.length() - 1);
 
-        String[] inputSelect = input.split("select"); // inputSelect = [[], ["att from t1,....""]]
+        // select * from ... where ... orderby ...
+        String[] inputSelect = input.split("select");
+        // * from ... where ... orderby ...
 
         if (inputSelect.length == 1) { // [["invalid statement"]]
-             System.out.println("---ERROR---");
+            System.out.println("---ERROR---");
+        }
         if (inputSelect.length == 1) { // [["invalid statement"]]
-             System.out.println("---ERROR---");
+            System.out.println("---ERROR---");
             System.out.println("Invalid select query\n");
             return;
         }
 
-
-        String[] inputSelectFrom = inputSelect[1].split("from"); // inputSelectFrom = ["att", "t1, t2 where conditions orderby ...]
+        // * from ... where ... orderby ...
+        String[] inputSelectFrom = inputSelect[1].split("from");
+        // ... where ... orderby ...
 
         if (inputSelectFrom.length == 1) { // ["invalid statement"]
             System.out.println("---ERROR---");
@@ -805,55 +802,61 @@ public class InputHandler {
             return;
         }
 
-
         selectAttr = inputSelectFrom[0]; // selectAttr = "att"
+        String[] attributes = stripWhitespace(selectAttr.trim().split(","));
 
-        String[] inputFromWhere = inputSelectFrom[1].split("where"); 
+        String reamingInput = inputSelectFrom[1];
 
-        if (inputFromWhere.length == 2) { // inputFromWhere = ["t1, t2","conditions orderby ..."]
-            isWhere = true;
-            fromTableNames = inputFromWhere[0]; // fromTableNames = "t1, t2"
-            String[] inputWhereOrderby = inputFromWhere[1].split("orderby");
-            if (inputWhereOrderby.length == 2) { // inputWhereOrderby = ["conditions", "att"]
-                isOrderby = true;
-                whereConditions = inputWhereOrderby[0];
-                orderbyAttr = inputWhereOrderby[1];
-            }
-            else { // inputWhereOrderby = ["conditions"];
-                isOrderby = false;
-                whereConditions = inputWhereOrderby[0];
-            }
-        }
-        else { // inputFromWhere = ["t1, t2 orderby ..."]
-            isWhere = false;
-            String[] inputFromOrderby = inputFromWhere[1].split("orderby");
-            if (inputFromOrderby.length == 2) { // inputFromOrderby = ["t1, t2", "att"]
-                isOrderby = true;
-                fromTableNames = inputFromOrderby[0];
-                orderbyAttr = inputFromOrderby[1];
-            }
-            else { // inputFromOrderby = ["t1, t2"];
-                isOrderby = false;
-                fromTableNames = inputFromOrderby[0];
-            }
+        // ... where ... orderby ...
+        String[] inputFromOrderby = reamingInput.split("orderby");
+        // ... where ... 
+
+        String[] order;
+
+        if (inputFromOrderby.length == 1) {
+            order = null;
+        } else {
+            order = stripWhitespace(inputFromOrderby[1].trim().split(","));
+            reamingInput = inputFromOrderby[0];
         }
 
-        // selectCommand(["att1","att2"..], ["t1","t2"..], ["c1","c2"..]/[], ["att1","att2"..]/[]);
-        if (!validateSelectAttributes(selectAttr.trim().split(", "), fromTableNames.trim().split(", "), whereConditions.trim().split(", "), orderbyAttr.trim().split(", "))) {
+        // ... where ... 
+        String[] inputFromWhere = reamingInput.split("where");
+        // tableNames 
+        String condition;
+
+        if (inputFromWhere.length == 1) {
+            condition = "true";
+        } else {
+            condition = inputFromWhere[1].trim();
+            reamingInput = inputFromWhere[0];
+        }
+
+        String[] tableNames = stripWhitespace(reamingInput.trim().split(","));
+
+        if (!validateSelectAttributes(attributes, tableNames, condition, order)) {
             return;
         }
-        // // TODO: storage manager needs to handle lists of attributes
-        this.storageManager.select(sAttributes, tableNames, conditions, oAttributes);
+
+        this.storageManager.select(attributes, tableNames, condition, order);
 
     }
 
-    private boolean validateSelectAttributes(String[] sAttributes, String[] tableNames, String[] conditions, String[] oAttributes) {
+    private static String[] stripWhitespace(String[] attributes) {
+        for (int i = 0; i < attributes.length; i++) {
+            attributes[i] = attributes[i].trim();
+        }
+        return attributes;
+    }
+
+    private boolean validateSelectAttributes(String[] sAttributes, String[] tableNames, String conditions,
+            String[] oAttributes) {
         for (int i = 0; i < tableNames.length; i++) { // validating table names
             if (!this.storageManager.getCatalog().doesTableNameExist(tableNames[i])) {
-                    System.out.println("---ERROR---");
-                    System.out.println("Table " + tableNames[i] + " not found\n");
-                    return false;
-                }
+                System.out.println("---ERROR---");
+                System.out.println("Table " + tableNames[i] + " not found\n");
+                return false;
+            }
         }
 
         Schema[] schemasUsed = new Schema[tableNames.length];
@@ -869,26 +872,28 @@ public class InputHandler {
                 return false;
             }
 
-            String[] splitSAtt = sAttributes[i].split(".");
+            if (sAttributes.length == 1 && sAttributes[i].equals("*")) {
+                break;
+            }
+
+            String[] splitSAtt = sAttributes[i].split("\\.");
             if (tableNames.length == 1) { // single table
-                if ( splitSAtt.length == 1) { // splitSAtt = attribute 
+                if (splitSAtt.length == 1) { // splitSAtt = attribute
                     if (schemasUsed[0].getIndexOfAttributeName(sAttributes[i]) == -1) {
                         System.out.println("---ERROR---");
                         System.out.println("select attribute " + sAttributes[i] + " not found\n");
                         return false;
                     }
-                }
-                else { // splitSAtt = tabename.attribute
+                } else { // splitSAtt = tabename.attribute
                     if (!splitSAtt[0].equals(tableNames[0])) {
                         System.out.println("---ERROR---");
                         System.out.println("table " + splitSAtt[0] + " in select attribute not found\n");
                         return false;
                     }
                 }
-            }
-            else { // multitables
+            } else { // multitables
                 Schema checkSchema = this.storageManager.getCatalog().getSchemaByName(splitSAtt[0]);
-                if (checkSchema == null){
+                if (checkSchema == null) {
                     break;
                 }
                 if (checkSchema.getIndexOfAttributeName(splitSAtt[1]) == -1) {
@@ -900,72 +905,72 @@ public class InputHandler {
         }
 
         // validate where
-        for (int i = 0; i < schemasUsed.length; i++) {
-            if (tableNames.length == 1){ // single table
-                if (!isValidCondition(conditions.toString(), schemasUsed[0])) {
-                    System.out.println("---ERROR---");
-                    System.out.println("Invalid format of where statement\n");
-                    return false;
-                }
-            }
-            else { // multitables
-                if (!isValidConditionMultiTable(conditions.toString())) {
-                    System.out.println("---ERROR---");
-                    System.out.println("Invalid format of where statement\n");
-                    return false;
+        if (!conditions.equals("true")) {
+            for (int i = 0; i < schemasUsed.length; i++) {
+                if (tableNames.length == 1) { // single table
+                    if (!isValidCondition(conditions.toString(), schemasUsed[0])) {
+                        System.out.println("---ERROR---");
+                        System.out.println("Invalid format of where statement\n");
+                        return false;
+                    }
+                } else { // multitables
+                    if (!isValidConditionMultiTable(conditions.toString())) {
+                        System.out.println("---ERROR---");
+                        System.out.println("Invalid format of where statement\n");
+                        return false;
+                    }
                 }
             }
         }
 
         // validate orderby (multitables)
         String[] splitOAtt;
-       
-        for (int i = 0; i < oAttributes.length; i++) {
-            splitOAtt = oAttributes[i].split(".");
-            
-            if (schemasUsed.length == 1) { // single table
-                if (splitOAtt.length == 1){ // no . operator used - only one table 
-                    if (schemasUsed[0].getIndexOfAttributeName(splitOAtt[0]) != -1)
-                        continue;
-                    else{
+
+        if (oAttributes != null) {
+            for (int i = 0; i < oAttributes.length; i++) {
+                splitOAtt = oAttributes[i].split(".");
+
+                if (schemasUsed.length == 1) { // single table
+                    if (splitOAtt.length == 1) { // no . operator used - only one table
+                        if (schemasUsed[0].getIndexOfAttributeName(splitOAtt[0]) != -1)
+                            continue;
+                        else {
+                            System.out.println("---ERROR---");
+                            System.out.println("orderby attribute " + oAttributes[i] + " not found \n");
+                            return false;
+                        }
+                    } else {
+                        if (!splitOAtt[0].equals(tableNames[0])) {
+                            System.out.println("---ERROR---");
+                            System.out.println("table " + splitOAtt[0] + " not found \n");
+                            return false;
+                        }
+                        if (schemasUsed[0].getIndexOfAttributeName(splitOAtt[1]) != -1)
+                            continue;
+                        else {
+                            System.out.println("---ERROR---");
+                            System.out.println("orderby attribute " + oAttributes[i] + " not found \n");
+                            return false;
+                        }
+                    }
+                } else { // multitables
+                    if (splitOAtt.length == 1) {
                         System.out.println("---ERROR---");
-                        System.out.println("orderby attribute " + oAttributes[i] + " not found \n");
+                        System.out.println("orderby table name for " + oAttributes[i] + " not specified \n");
                         return false;
+                    } else {
+                        Schema schema = this.storageManager.getCatalog().getSchemaByName(splitOAtt[0]);
+                        if (schema.getIndexOfAttributeName(splitOAtt[1]) != -1)
+                            continue;
+                        else {
+                            System.out.println("---ERROR---");
+                            System.out.println("orderby attribute " + oAttributes[i] + " not found \n");
+                            return false;
+                        }
                     }
                 }
-                else {
-                    if (!splitOAtt[0].equals(tableNames[0])) {
-                        System.out.println("---ERROR---");
-                        System.out.println("table " + splitOAtt[0] + " not found \n");
-                        return false;
-                    }
-                    if (schemasUsed[0].getIndexOfAttributeName(splitOAtt[1]) != -1)
-                        continue;
-                    else{
-                        System.out.println("---ERROR---");
-                        System.out.println("orderby attribute " + oAttributes[i] + " not found \n");
-                        return false;
-                    }
-                }
+
             }
-            else { // multitables
-                if (splitOAtt.length == 1){
-                    System.out.println("---ERROR---");
-                    System.out.println("orderby table name for " + oAttributes[i] + " not specified \n");
-                    return false;
-                }
-                else {
-                    Schema schema = this.storageManager.getCatalog().getSchemaByName(splitOAtt[0]);
-                    if (schema.getIndexOfAttributeName(splitOAtt[1]) != -1)
-                        continue;
-                    else{
-                        System.out.println("---ERROR---");
-                        System.out.println("orderby attribute " + oAttributes[i] + " not found \n");
-                        return false;
-                    }
-                }
-            }
-            
         }
         return true;
     }
@@ -1029,7 +1034,6 @@ public class InputHandler {
         }
     }
 
-
     private void update(String originalString) {
         String input = originalString.substring(0, originalString.length() - 1);
 
@@ -1089,7 +1093,6 @@ public class InputHandler {
             System.out.println("SUCCESS!");
     }
 
-
     private boolean isValidCondition(String condition, Schema schema) {
         String[] conditions = condition.split("(?i)\\s+(and|or)\\s+");
         for (String cond : conditions) {
@@ -1121,33 +1124,36 @@ public class InputHandler {
     private boolean isValidConditionMultiTable(String condition) {
         String[] conditions = condition.split("(?i)\\s+(and|or)\\s+");
         for (String cond : conditions) {
-            String[] parts = cond.split("\\s+");
+            String[] parts = cond.split(" ");
             if (parts.length != 3) {
                 return false;
             }
-            String[] left = parts[0].split(".");
+            String[] left = parts[0].split("\\.");
             String op = parts[1];
-            String[] right = parts[2].split(".");
+            String[] right = parts[2].split("\\.");
 
-            if (!isValidValue(left[1], this.storageManager.getCatalog().getSchemaByName(left[0])) 
-                    || !isValidOperator(op) 
-                    || !isValidValue(right[1], this.storageManager.getCatalog().getSchemaByName(right[0]))) {
+            boolean wasError = false;
+            if (left.length > 1) {
+                wasError = !isValidValue(left[1], this.storageManager.getCatalog().getSchemaByName(left[0]));
+            } else {
+                wasError = !isValidValue(left[0], null);
+            }
 
+            wasError = !isValidOperator(op);
+
+            if (right.length > 1) {
+                wasError = !isValidValue(right[1], this.storageManager.getCatalog().getSchemaByName(right[0]));
+            } else {
+                wasError = !isValidValue(right[0], null);
+            }
+
+            if (wasError) {
                 System.out.println("---ERROR---");
-                if (!isValidValue(left[1], this.storageManager.getCatalog().getSchemaByName(left[0]))) {
-                    System.out.println(left + " is not a valid attribute name or value");
-                }
-
-                if (!isValidOperator(op)) {
-                    System.out.println(op + " is not a valid operator");
-                }
-
-                if (!isValidValue(right[1], this.storageManager.getCatalog().getSchemaByName(right[0]))) {
-                    System.out.println(right + " is not a valid attribute name or value");
-                }
-
+                System.out.println("error with condition '" + condition + "'");
                 return false;
             }
+
+            // }
         }
         return true;
     }

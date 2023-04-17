@@ -48,4 +48,8 @@ public class Varchar implements SchemaAttribute {
     public Object getDefault() {
         return this.defaultValue;
     }
+
+    public SchemaAttribute updateNameForJoin(String tableName) {
+        return new Varchar(tableName + "." + this.attributeName, this.length, this.isPrimaryKey, this.notNull, this.isUnique, this.defaultValue);
+    }
 }

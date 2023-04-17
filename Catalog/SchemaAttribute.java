@@ -15,4 +15,6 @@ public interface SchemaAttribute {
     public boolean isUnique();
 
     public Object getDefault();
+
+    public SchemaAttribute updateNameForJoin(String tableName);
 }

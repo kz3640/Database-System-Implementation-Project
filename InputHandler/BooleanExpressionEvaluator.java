@@ -3,6 +3,7 @@ package InputHandler;
 import java.util.*;
 
 import Catalog.Schema;
+import Catalog.SchemaAttribute;
 import Record.Record;
 
 public class BooleanExpressionEvaluator {
@@ -63,6 +64,17 @@ public class BooleanExpressionEvaluator {
     private static String replaceWithAttributeValue(String attributeOrValue, Record record, Schema schema) {
         if (attributeOrValue.matches("true|false")) {
             return attributeOrValue;
+        }
+
+        // multiTable
+        if (attributeOrValue.contains(".")) {
+            int indexOfAttribute = 0;
+            for (SchemaAttribute attribute : schema.getAttributes()) {
+                if (attribute.getAttributeName().equals(attributeOrValue)) {
+                    return record.getData().get(indexOfAttribute).getAttribute().toString();
+                }
+                indexOfAttribute++;
+            }
         }
 
         if (attributeOrValue.matches("[a-zA-Z]\\w*")) {
@@ -137,6 +149,6 @@ public class BooleanExpressionEvaluator {
         if (operator1 == operator2) {
             return true;
         } else
-            return operator1 == '|' && operator2 == '&';
+            return operator1 == '&' && operator2 == '|';
     }
 }
