@@ -37,7 +37,7 @@ public class LeafNode extends Node {
         return -1;
     }
 
-    private boolean isFull() {
+    public boolean isFull() {
         return this.currentSize == maxSize;
     }
 
@@ -45,18 +45,15 @@ public class LeafNode extends Node {
         return this.currentSize < minSize;
     }
 
-    // TODO
-    // public boolean insert(Pair bucket) {
-    //     if (this.isFull()) {
-    //       return false;
-    //     } else {
-    //       this.bucketPointers[currentSize] = bucket;
-    //       currentSize++;
-    //       Arrays.sort(this.bucketPointers, 0, currentSize);
-  
-    //       return true;
-    //     }
-    //   }
+    public void insert(int idx, int key, Pair bucket) {
+        for (int i = this.currentSize -1; i >= idx; i--) {
+            this.bucketPointers[i + 1] = this.bucketPointers[i];
+            this.keys[i + 1] = this.keys[i];
+        }
+        this.bucketPointers[idx] = bucket;
+        this.keys[idx] = key;
+        this.currentSize++;
+    }
 
     //   public void delete(int index) {
     //     this.bucketPointers[index] = null;
