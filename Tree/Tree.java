@@ -11,17 +11,17 @@ public class Tree {
         this.root.isRoot = true;
     }
 
-    public void insert() {
+    public void insert(Tree tree, int key) {
         //TODO:  change node type if children added, add nodepointers
     }
 
 
 
-    public void delete() {
+    public void delete(Tree tree, int key) {
 
     }
 
-    public void update() {
+    public void update(int key, Pair bucket) {
 
     }
 
