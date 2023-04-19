@@ -45,22 +45,21 @@ public class LeafNode extends Node {
         return this.currentSize < minSize;
     }
 
-    // NOT SURE IF RIGHT LOGIC
-    public boolean insert(Pair bucket) {
-        if (this.isFull()) {
-          return false;
-        } else {
-          this.bucketPointers[currentSize] = bucket;
-          currentSize++;
-          Arrays.sort(this.bucketPointers, 0, currentSize);
+    // TODO
+    // public boolean insert(Pair bucket) {
+    //     if (this.isFull()) {
+    //       return false;
+    //     } else {
+    //       this.bucketPointers[currentSize] = bucket;
+    //       currentSize++;
+    //       Arrays.sort(this.bucketPointers, 0, currentSize);
   
-          return true;
-        }
-      }
+    //       return true;
+    //     }
+    //   }
 
-    // NOT SURE IF RIGHT LOGIC
-      public void delete(int index) {
-        this.bucketPointers[index] = null;
-        currentSize--;
-      }
+    //   public void delete(int index) {
+    //     this.bucketPointers[index] = null;
+    //     currentSize--;
+    //   }
 }

@@ -14,25 +14,35 @@ public class Tree {
     }
 
     public void insert(Tree tree, int key) {
-        //TODO:  change node type if children added, add nodepointers
+        // TODO
+        // if (isRoot)
+            // if empty, add keys and buckets
+        // else if isLeaf
+            // else if not full
+                // search(keys) { update(buckets)}to add in the right index,
+            // else full, convert to internal(max size of root, keys, pointers change) and add leafnode/s and pointers)
+
+        // else (internal)
+            //search(keys) and insert(nodepointers) to add in the right idx
+        // if already exists, ERROR
+        // found idx, call SM to insert- gives back bucket, shiftup if needed,  update() all the pointers in that node, 
     }
 
-
-
     public void delete(Tree tree, int key) {
-
+        //TODO:  change node type if needed, add bucketpointers
+        // merge/shiftup if needed
     }
 
     public void update(int key, Pair bucket) {
 
     }
 
-    public void split() {
+    public void shiftUp() {
 
     }
 
     public void merge() {
-        //TODO:  change node type if needed, add bucketpointers
+        
     }
 
 }

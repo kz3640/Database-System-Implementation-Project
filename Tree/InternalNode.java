@@ -1,8 +1,6 @@
 package Tree;
 
 public class InternalNode extends Node {
-    InternalNode left;
-    InternalNode right;
     Node[] nodePointers;
 
     private InternalNode(int n, Integer[] keys) {
@@ -42,31 +40,31 @@ public class InternalNode extends Node {
         return this.currentSize < minSize;
     }
 
-    // uhhhh NOT SURE IF RIGHT LOGIC
-    private void removeNodePointer(Node pointer) {
-        for (int i = 0; i < nodePointers.length; i++) {
-            if (nodePointers[i] == pointer) {
-                this.nodePointers[i] = null;
-            }
-        }
-        this.currentSize--;
-    }
-    // NOT SURE IF RIGHT LOGIC
-    private void removeNodePointer(int idx) {
-        this.nodePointers[idx] = null;
-        this.currentSize--;
-    }
-    // NOT SURE IF RIGHT LOGIC
-    private void removeKey(int idx) {
-        this.keys[idx] = null;
-    }
-    // NOT SURE IF RIGHT LOGIC
-    private void insertNodePointer(Node pointer, int idx) {
-        for (int i = this.currentSize -1; i >= idx; i--) {
-            nodePointers[i + 1] = nodePointers[i];
-        }
-        this.nodePointers[idx] = pointer;
-        this.currentSize--;
-    }
+    // TODO
+    // private void removeNodePointer(Node pointer) {
+    //     for (int i = 0; i < nodePointers.length; i++) {
+    //         if (nodePointers[i] == pointer) {
+    //             this.nodePointers[i] = null;
+    //         }
+    //     }
+    //     this.currentSize--;
+    // }
+
+    // private void removeNodePointer(int idx) {
+    //     this.nodePointers[idx] = null;
+    //     this.currentSize--;
+    // }
+
+    // private void removeKey(int idx) {
+    //     this.keys[idx] = null;
+    // }
+
+    // private void insertNodePointer(Node pointer, int idx) {
+    //     for (int i = this.currentSize -1; i >= idx; i--) {
+    //         nodePointers[i + 1] = nodePointers[i];
+    //     }
+    //     this.nodePointers[idx] = pointer;
+    //     this.currentSize--;
+    // }
 }
 
