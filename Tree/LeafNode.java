@@ -7,16 +7,15 @@ public class LeafNode extends Node {
     LeafNode right;
     Pair[] bucketPointers;
 
-    public LeafNode(int n, Integer[] keys, Pair bucket) {
-        this.maxSize = n - 1;
-        this.minSize = (int) Math.ceil((n-1)/2.0);
-        this.currentSize = 0;
-        this.keys = keys;
-        this.bucketPointers = new Pair[n];
-        this.insert(bucket);
+    // public LeafNode(int n, Integer[] keys, Pair[] bucketPointers) {
+    //     this.maxSize = n - 1;
+    //     this.minSize = (int) Math.ceil((n-1)/2.0);
+    //     this.currentSize = 0;
+    //     this.keys = keys;
+    //     this.bucketPointers = bucketPointers;
 
-        this.isLeaf = true;
-    }
+    //     this.isLeaf = true;
+    // }
 
     public LeafNode(int n, Integer[] keys, Pair[] bucketPointers, InternalNode parent) {
         this.maxSize = n - 1;
