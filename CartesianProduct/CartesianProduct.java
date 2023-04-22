@@ -94,7 +94,7 @@ public class CartesianProduct {
             newAttributes.add(schema.getAttributes().get(index));
         }
 
-        return new Schema(schema.getTableName(), newAttributes, null);
+        return new Schema(schema.getTableName(), newAttributes, null, null);
     }
 
     // join two tables
@@ -130,12 +130,12 @@ public class CartesianProduct {
         if (schema1 == null) {
             newAttributes.addAll(schema2.getJoinedAttributeName());
 
-            return new Schema(schema2.getTableName(), newAttributes, null);
+            return new Schema(schema2.getTableName(), newAttributes, null, null);
         }
         newAttributes.addAll(schema1.getAttributes());
         newAttributes.addAll(schema2.getJoinedAttributeName());
 
-        return new Schema(schema1.getTableName() + " x " +  schema2.getTableName(), newAttributes, null);
+        return new Schema(schema1.getTableName() + " x " +  schema2.getTableName(), newAttributes, null, null);
     }
 
     public static void sort2DArray(String[][] arr, Comparator<String[]> sortingFunction) {

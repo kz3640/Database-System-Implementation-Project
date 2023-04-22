@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.ArrayList;
 
 import Record.RecordAttribute;
+import Tree.BPlusTree;
 import Record.Record;
 
 public class Schema {
@@ -12,11 +13,13 @@ public class Schema {
     private String index;
     private Catalog catalog;
     private int indexOfPrimaryKey;
+    private BPlusTree bpt;
 
-    public Schema(String tableName, ArrayList<SchemaAttribute> attributes, Catalog catalog) {
+    public Schema(String tableName, ArrayList<SchemaAttribute> attributes, Catalog catalog, BPlusTree bpt) {
         this.tableName = tableName;
         this.catalog = catalog;
         this.attributes = attributes;
+        this.bpt = bpt;
 
         if (attributes != null) {
             for (SchemaAttribute schemaAttribute : attributes) {
@@ -27,6 +30,10 @@ public class Schema {
             }
         }
         return;
+    }
+
+    public BPlusTree getBpt() {
+        return bpt;
     }
 
     public void setIndex(String index) {

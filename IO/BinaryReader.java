@@ -79,7 +79,8 @@ public class BinaryReader {
                         attributes.add(new BICD(attrName, attrType, isPrimary, notNull, isUnique, null));
                     }
                 }
-                Schema schema = new Schema(tableName, attributes, catalog);
+                // TODO FIX
+                Schema schema = new Schema(tableName, attributes, catalog, null);
                 schema.setIndex(String.valueOf(tableIdToRead));
                 catalog.addSchema(schema);
 

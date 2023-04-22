@@ -7,6 +7,7 @@ import java.util.Stack;
 
 import IO.BinaryWriter;
 import StorageManager.StorageManager;
+import Tree.BPlusTree;
 import Util.Util;
 import Catalog.BICD;
 import Catalog.Catalog;
@@ -335,7 +336,10 @@ public class InputHandler {
         if (schemaAttributes == null)
             return false;
 
-        Schema schema = new Schema(tableName, schemaAttributes, this.storageManager.getCatalog());
+
+        // TODO FIX
+        BPlusTree bpt = new BPlusTree(4, "int");
+        Schema schema = new Schema(tableName, schemaAttributes, this.storageManager.getCatalog(), bpt);
 
         if (!storageManager.addSchema(schema))
             return false;
@@ -450,7 +454,8 @@ public class InputHandler {
                 currentAtt.add(nSchemaAttribute.get(0)); // add new schema attribute to list of existing schema
                                                          // attributes
 
-                Schema naSchema = new Schema(tableName, currentAtt, this.storageManager.getCatalog());
+                 // TODO FIX
+                Schema naSchema = new Schema(tableName, currentAtt, this.storageManager.getCatalog(), null);
                 naSchema.setIndex(schema.getIndex());
 
                 if (!storageManager.alterSchema(schema, naSchema))
@@ -483,7 +488,8 @@ public class InputHandler {
                 }
 
                 currentAtt.remove(idx);
-                Schema ndSchema = new Schema(tableName, currentAtt, this.storageManager.getCatalog());
+                // TODO FIX
+                Schema ndSchema = new Schema(tableName, currentAtt, this.storageManager.getCatalog(), null);
                 ndSchema.setIndex(schema.getIndex());
 
                 if (!storageManager.alterSchema(schema, ndSchema))
