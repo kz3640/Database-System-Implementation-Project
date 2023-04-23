@@ -3,12 +3,15 @@ package StorageManager;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Map;
 
 import Buffer.PageBuffer;
 import CartesianProduct.CartesianProduct;
 import Buffer.Page;
 import Record.Record;
 import Record.RecordAttribute;
+import Tree.BPlusTree;
+import Tree.BPlusTree.PageInfo;
 import Util.Util;
 import Catalog.Catalog;
 import Catalog.Schema;
@@ -30,6 +33,13 @@ public class StorageManager {
     // the catalog
     public Catalog getCatalog() {
         return catalog;
+    }
+
+    public void writeBPlusTrees() {
+        Map<String, Schema> tables = this.catalog.getTables();
+        for (Schema schema : tables.values()) {
+            pageBuffer.writer.writeBPlusTree(schema);
+        }
     }
 
     public boolean addSchema(Schema schema) {
@@ -77,16 +87,18 @@ public class StorageManager {
     }
 
     // add record into page.
-    // return: false -> record doesn't go into page
-    // true -> record was added into page
-    public boolean insertRecordInPage(Page page, Record record, Schema schema, boolean lastPage) {
+    // return:  [was added, did page split]
+    public boolean[] insertRecordInPage(Page page, Record record, Schema schema, boolean lastPage) {
         boolean shouldBeAdded = false;
         int indexToBeAdded = 0;
+        boolean[] rt = new boolean[2];
 
         ArrayList<Record> pageRecords = page.getRecords();
         if (pageRecords.size() == 0) {
             pageRecords.add(record);
-            return true;
+            rt[0] = true;
+            rt[1] = false;
+            return rt;
         }
 
         int indexOfPrimaryKey = schema.getIndexOfPrimaryKey();
@@ -132,18 +144,24 @@ public class StorageManager {
 
         // couldn't find a spot for the primary key so return false
         if (!shouldBeAdded) {
-            return false;
+            rt[0] = false;
+            rt[1] = false;
+            return rt;
         }
 
         // check remaining space and see if we need to split
         if (page.canRecordFitInPage(record)) {
             page.addRecord(indexToBeAdded, record);
+            rt[0] = true;
+            rt[1] = false;
+            return rt;
         } else {
             page.addRecord(indexToBeAdded, record);
             splitPage(page);
+            rt[0] = true;
+            rt[1] = true;
+            return rt;
         }
-
-        return true;
     }
 
     // split page and add record to correct page
@@ -156,7 +174,7 @@ public class StorageManager {
         while (true) {
             if (pageIndex <= page.getPageID())
                 break;
-            Page pageToUpdate = this.pageBuffer.getPage(pageIndex, page.getSchema(), true);
+            Page pageToUpdate = this.pageBuffer.getPage(pageIndex, page.getSchema(), false);
             pageToUpdate.incrementPageID();
             pageIndex--;
         }
@@ -174,8 +192,7 @@ public class StorageManager {
         pageBuffer.addPageToBuffer(newPage);
     }
 
-
-    public void select(String[] selectAttr,  String[] fromTableNames,  String whereConditions,  String[] orderbyAttr) {
+    public void select(String[] selectAttr, String[] fromTableNames, String whereConditions, String[] orderbyAttr) {
         if (orderbyAttr != null) {
             for (String string : orderbyAttr) {
                 System.out.println(string);
@@ -230,19 +247,48 @@ public class StorageManager {
         } catch (IOException e) {
         }
 
-        int pageIndex = 0;
+        Object primAttr = record.getData().get(schema.getIndexOfPrimaryKey()).getAttribute();
+
+        BPlusTree bpt = schema.getBpt();
+
         int pagesInTable = this.pageBuffer.getTotalPages(schema);
-        while (true) {
-            if (pagesInTable <= pageIndex)
-                pageBuffer.createNewPage(schema);
 
-            Page page = this.pageBuffer.getPage(pageIndex, schema, true);
+        bpt.insert(primAttr, bpt.new PageInfo(-1, -1));
+        PageInfo pi = bpt.getPositionToInsert(primAttr);
 
-            if (insertRecordInPage(page, record, schema, pagesInTable - 1 == pageIndex))
-                break;
+        Integer pageIndex = pi.pageIndex;
 
-            pageIndex++;
+        if (pagesInTable <= pageIndex) {
+            pageBuffer.createNewPage(schema);
         }
+
+        Page page = this.pageBuffer.getPage(pageIndex, schema, true);
+        boolean[] insertAttempt = insertRecordInPage(page, record, schema, pagesInTable - 1 == pageIndex);
+
+        boolean wasSplit = insertAttempt[1];
+
+        if (!insertAttempt[0]) {
+            pageIndex++;
+            if (pagesInTable <= pageIndex) {
+                pageBuffer.createNewPage(schema);
+            }
+
+            page = this.pageBuffer.getPage(pageIndex, schema, true);
+
+            boolean[] insertAttempt2 = insertRecordInPage(page, record, schema, pagesInTable - 1 == pageIndex);
+            if (!insertAttempt2[0]) {
+                System.out.println("ERROR");
+            }
+            wasSplit = insertAttempt2[1];
+        }
+        
+        bpt.updatePageInfo(primAttr, bpt.new PageInfo(pageIndex, 0));
+        
+        if (wasSplit) {
+            bpt.updateAllPagesPastAndIncluding(pageIndex, page, schema);
+        }
+
+        // bpt.printAllLeafNodes();
     }
 
     public boolean doesRecordFollowConstraints(Record record, String tableName) {
@@ -490,7 +536,7 @@ public class StorageManager {
                     String valueOfPrimaryString = recordAttribute.getAttribute().toString();
 
                     // new logic for deleting
-                    String logicString =  nameOfPrimaryAttribute + " = " + valueOfPrimaryString;
+                    String logicString = nameOfPrimaryAttribute + " = " + valueOfPrimaryString;
 
                     // update record
                     int indexOfAttribute = schema.getIndexOfAttributeName(col);
@@ -504,7 +550,8 @@ public class StorageManager {
 
                     wasPageDeleted = deleteSingleRecord(tableName, logicString);
 
-                    if (!(doesRecordFollowConstraints(updatedRecord, tableName) && schema.doesRecordFollowSchema(updatedRecord))) {
+                    if (!(doesRecordFollowConstraints(updatedRecord, tableName)
+                            && schema.doesRecordFollowSchema(updatedRecord))) {
                         // if it fails to add after
                         addRecord(record, schema);
                         System.out.println("Unable to update record: ");

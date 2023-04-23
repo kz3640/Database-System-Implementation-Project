@@ -19,6 +19,10 @@ public class Catalog {
         this.tables = new HashMap<>();
     }
 
+    public Map<String, Schema> getTables() {
+        return tables;
+    }
+
     public boolean doesTableNameExist(String tableName) {
         return this.tables.get(tableName) != null;
     }
