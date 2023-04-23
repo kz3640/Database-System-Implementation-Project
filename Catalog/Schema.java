@@ -32,6 +32,10 @@ public class Schema {
         return;
     }
 
+    public void addBPT(BPlusTree bpt) {
+        this.bpt = bpt;
+    }
+
     public BPlusTree getBpt() {
         return bpt;
     }
@@ -78,6 +82,10 @@ public class Schema {
 
     public String getFileName() {
         return this.catalog.getPath() + this.index + "database.txt";
+    }
+
+    public String getBPlusTreeFileName() {
+        return this.catalog.getPath() + this.index + "bplusTree.txt";
     }
 
     public int getIndexOfPrimaryKey() {

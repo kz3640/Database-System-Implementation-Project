@@ -8,6 +8,8 @@ import java.util.ArrayList;
 import Buffer.Page;
 import Record.Record;
 import Record.RecordAttribute;
+import Tree.BPlusTree;
+import Tree.BPlusTree.NodeInfo;
 import Catalog.Catalog;
 import Catalog.Schema;
 import Catalog.SchemaAttribute;
@@ -58,7 +60,6 @@ public class BinaryWriter {
 
     // create the initial db file with 0 pages
     public void initDB(Schema schema) {
-        System.out.println(dbName);
         String fileName = this.catalog.getPath() + schema.getIndex() + dbName;
 
         File db = new File(fileName);
@@ -103,6 +104,37 @@ public class BinaryWriter {
                 writeDataType(attribute, fileName, raf);
             }
         }
+    }
+
+    public void writeBPlusTree(Schema schema) {
+        BPlusTree bpt = schema.getBpt();
+
+        ArrayList<NodeInfo> leafs = bpt.getAllLeafs();
+
+        RandomAccessFile raf;
+        try {
+            raf = new RandomAccessFile(schema.getBPlusTreeFileName(), "rw");
+            raf.writeInt(leafs.size());
+
+            for (NodeInfo nodeInfo : leafs) {
+                if (bpt.getType().equals("integer")) {
+                    raf.writeInt((int) nodeInfo.getKey());
+                } else if (bpt.getType().equals("stirng")) {
+                    raf.writeUTF((String) nodeInfo.getKey());
+                } else if (bpt.getType().equals("double")) {
+                    raf.writeDouble((Double) nodeInfo.getKey());
+                } else if (bpt.getType().equals("boolean")) {
+                    raf.writeBoolean((Boolean) nodeInfo.getKey());
+                }
+                raf.writeInt(nodeInfo.getPageInfo().pageIndex);
+                raf.writeInt(nodeInfo.getPageInfo().positionIndex);
+            }
+
+            raf.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
     }
 
     // given a page, it will write that page to the correct location in the file

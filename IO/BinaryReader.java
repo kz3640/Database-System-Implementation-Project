@@ -13,6 +13,7 @@ import Catalog.SchemaAttribute;
 import Catalog.Varchar;
 import Record.Record;
 import Record.RecordAttribute;
+import Tree.BPlusTree;
 
 public class BinaryReader {
     private Catalog catalog;
@@ -79,9 +80,13 @@ public class BinaryReader {
                         attributes.add(new BICD(attrName, attrType, isPrimary, notNull, isUnique, null));
                     }
                 }
-                // TODO FIX
+                
                 Schema schema = new Schema(tableName, attributes, catalog, null);
                 schema.setIndex(String.valueOf(tableIdToRead));
+
+                BPlusTree bpt = readBPT(schema);
+                schema.addBPT(bpt);
+
                 catalog.addSchema(schema);
 
                 tableIdToRead++;
@@ -96,6 +101,54 @@ public class BinaryReader {
         }
 
         return null;
+    }
+
+    public BPlusTree readBPT(Schema schema) {
+
+        String type = "int";
+        for (SchemaAttribute schemaAttribute : schema.getAttributes()) {
+            if (schemaAttribute.isPrimaryKey()) {
+                if (schemaAttribute.getTypeAsString().equals("varchar")
+                        || schemaAttribute.getTypeAsString().equals("char")) {
+                    type = "string";
+                } else {
+                    type = schemaAttribute.getTypeAsString();
+                }
+            }
+        }
+
+        BPlusTree bpt = null;
+        bpt = new BPlusTree(4, type);
+
+        RandomAccessFile raf;
+        try {
+            raf = new RandomAccessFile(schema.getBPlusTreeFileName(), "rw");
+            int keys = raf.readInt();
+
+            for (int i = 0; i < keys; i++) {
+                Object key;
+                if (bpt.getType().equals("integer")) {
+                    key = raf.readInt();
+                } else if (bpt.getType().equals("stirng")) {
+                    key = raf.readUTF();
+                } else if (bpt.getType().equals("double")) {
+                    key = raf.readDouble();
+                } else {
+                    key = raf.readBoolean();
+                }
+                int pageIndex = raf.readInt();
+                int pagePosition = raf.readInt();
+
+                bpt.insert(key, bpt.new PageInfo(pageIndex, pagePosition));
+            }
+
+            raf.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+
+        return bpt;
     }
 
     // retrieve the total amount of pages stored in the db
@@ -188,7 +241,7 @@ public class BinaryReader {
             int junkDataSize = raf.readInt();
             int bytesToRead = this.catalog.getPageSize() - junkDataSize - 8;
             Page page = readPage(raf, bytesToRead, pageId, schema);
-            
+
             raf.close();
             return page;
         } catch (IOException e) {

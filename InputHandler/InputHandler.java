@@ -254,10 +254,11 @@ public class InputHandler {
      * Used to verify if a table name or attribute is a valid word and is not bad
      */
     private boolean isKeyWord(String word) {
-        List<String> keyWords = List.of("integer", "double", "boolean", "char", "varchar", "create", "table", "record", "page",
-                                        "drop", "primarykey", "select", "from", "insert", "into", "values", "display", "info",
-                                        "unique", "notnull", "drop", "add", "default", "delete", "where", "and", "or", "update",
-                                        "set", "orderby", "*");
+        List<String> keyWords = List.of("integer", "double", "boolean", "char", "varchar", "create", "table", "record",
+                "page",
+                "drop", "primarykey", "select", "from", "insert", "into", "values", "display", "info",
+                "unique", "notnull", "drop", "add", "default", "delete", "where", "and", "or", "update",
+                "set", "orderby", "*");
         return keyWords.contains(word);
     }
 
@@ -336,9 +337,20 @@ public class InputHandler {
         if (schemaAttributes == null)
             return false;
 
+        String type = "int";
+        for (SchemaAttribute schemaAttribute : schemaAttributes) {
+            if (schemaAttribute.isPrimaryKey()) {
+                if (schemaAttribute.getTypeAsString().equals("varchar")
+                        || schemaAttribute.getTypeAsString().equals("char")) {
+                    type = "string";
+                } else {
+                    type = schemaAttribute.getTypeAsString();
+                }
+            }
+        }
 
         // TODO FIX
-        BPlusTree bpt = new BPlusTree(4, "int");
+        BPlusTree bpt = new BPlusTree(4, type);
         Schema schema = new Schema(tableName, schemaAttributes, this.storageManager.getCatalog(), bpt);
 
         if (!storageManager.addSchema(schema))
@@ -454,7 +466,7 @@ public class InputHandler {
                 currentAtt.add(nSchemaAttribute.get(0)); // add new schema attribute to list of existing schema
                                                          // attributes
 
-                 // TODO FIX
+                // TODO FIX
                 Schema naSchema = new Schema(tableName, currentAtt, this.storageManager.getCatalog(), null);
                 naSchema.setIndex(schema.getIndex());
 
@@ -815,7 +827,7 @@ public class InputHandler {
 
         // ... where ... orderby ...
         String[] inputFromOrderby = reamingInput.split("orderby");
-        // ... where ... 
+        // ... where ...
 
         String[] order;
 
@@ -826,9 +838,9 @@ public class InputHandler {
             reamingInput = inputFromOrderby[0];
         }
 
-        // ... where ... 
+        // ... where ...
         String[] inputFromWhere = reamingInput.split("where");
-        // tableNames 
+        // tableNames
         String condition;
 
         if (inputFromWhere.length == 1) {
@@ -1260,6 +1272,7 @@ public class InputHandler {
                 break;
             case "quit":
                 storageManager.writeBuffer();
+                storageManager.writeBPlusTrees();
                 return false;
             case "display":
                 display(originalString);

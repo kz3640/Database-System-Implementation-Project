@@ -3,6 +3,7 @@ package StorageManager;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Map;
 
 import Buffer.PageBuffer;
 import CartesianProduct.CartesianProduct;
@@ -32,6 +33,13 @@ public class StorageManager {
     // the catalog
     public Catalog getCatalog() {
         return catalog;
+    }
+
+    public void writeBPlusTrees() {
+        Map<String, Schema> tables = this.catalog.getTables();
+        for (Schema schema : tables.values()) {
+            pageBuffer.writer.writeBPlusTree(schema);
+        }
     }
 
     public boolean addSchema(Schema schema) {
@@ -166,7 +174,7 @@ public class StorageManager {
         while (true) {
             if (pageIndex <= page.getPageID())
                 break;
-            Page pageToUpdate = this.pageBuffer.getPage(pageIndex, page.getSchema(), true);
+            Page pageToUpdate = this.pageBuffer.getPage(pageIndex, page.getSchema(), false);
             pageToUpdate.incrementPageID();
             pageIndex--;
         }
@@ -250,8 +258,6 @@ public class StorageManager {
 
         Integer pageIndex = pi.pageIndex;
 
-        System.out.println(pageIndex);
-
         if (pagesInTable <= pageIndex) {
             pageBuffer.createNewPage(schema);
         }
@@ -267,6 +273,8 @@ public class StorageManager {
                 pageBuffer.createNewPage(schema);
             }
 
+            page = this.pageBuffer.getPage(pageIndex, schema, true);
+
             boolean[] insertAttempt2 = insertRecordInPage(page, record, schema, pagesInTable - 1 == pageIndex);
             if (!insertAttempt2[0]) {
                 System.out.println("ERROR");
@@ -277,7 +285,7 @@ public class StorageManager {
         bpt.updatePageInfo(primAttr, bpt.new PageInfo(pageIndex, 0));
         
         if (wasSplit) {
-            bpt.updateAllPagesPastAndIncluding(pageIndex);
+            bpt.updateAllPagesPastAndIncluding(pageIndex, page, schema);
         }
 
         // bpt.printAllLeafNodes();
