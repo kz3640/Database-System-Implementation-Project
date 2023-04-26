@@ -12,8 +12,48 @@ public class BPlusTree {
     LeafNode firstLeaf;
     String type;
 
+
     public String getType() {
         return type;
+    }
+
+    public Node getRoot() {
+        return root;
+    }
+
+    public LeafNode getFirstLeaf() {
+        if (root == null) {
+            return firstLeaf;
+        }
+
+        Node node = root;
+        while (node instanceof InternalNode) {
+            node = ((InternalNode) node).getChildPointers()[0];
+        }
+
+        return (LeafNode) node;
+    }
+
+    public void delete(Object primaryKey) {
+        if (root == null) {
+            // Tree is empty
+            return;
+        }
+        // Find the leaf node where the record with the given primary key should be
+        LeafNode leaf = findLeafNode(primaryKey);
+        int index = leaf.indexOf(primaryKey);
+        if (index == -1) {
+            // Record with given primary key is not found
+            return;
+        }
+        // Remove the record from the leaf node
+        leaf.delete(index);
+        // If the leaf node is now underflowing, balance the tree
+        if (leaf.isDeficient()) {
+            handleDeficiency(leaf.parent);
+        }
+        // Decrease the size of the tree
+        //size--;?
     }
 
     public class NodeInfo {
@@ -628,7 +668,7 @@ public class BPlusTree {
         InternalNode parent;
     }
 
-    private class InternalNode extends Node {
+    public class InternalNode extends Node {
         int maxDegree;
         int minDegree;
         int degree;
@@ -716,6 +756,10 @@ public class BPlusTree {
             this.keys = keys;
             this.childPointers = pointers;
         }
+
+        public Node[] getChildPointers() {
+            return childPointers;
+        }
     }
 
     public class PageInfo {
@@ -725,6 +769,14 @@ public class BPlusTree {
         public PageInfo(int pageIndex, int positionIndex) {
             this.pageIndex = pageIndex;
             this.positionIndex = positionIndex;
+        }
+
+        public int getPageIndex() {
+            return pageIndex;
+        }
+
+        public void setPageIndex(int i) {
+            pageIndex = i;
         }
     }
 
@@ -769,6 +821,10 @@ public class BPlusTree {
             return numPairs == minNumPairs;
         }
 
+        public DictionaryPair[] getDictionary() {
+            return dictionary;
+        }
+
         public LeafNode(int m, DictionaryPair dp) {
             this.maxNumPairs = m - 1;
             this.minNumPairs = (int) (Math.ceil(m / 2) - 1);
@@ -783,6 +839,19 @@ public class BPlusTree {
             this.dictionary = dps;
             this.numPairs = linearNullSearch(dps);
             this.parent = parent;
+        }
+
+        public LeafNode getRightSibling() {
+            return rightSibling;
+        }
+
+        public int indexOf(Object primaryKey) {
+            for (int i = 0; i < this.dictionary.length; i++) {
+                if (this.dictionary[i] != null && this.dictionary[i].key.equals(primaryKey)) {
+                    return i;
+                }
+            }
+            return -1;
         }
     }
 
@@ -822,6 +891,13 @@ public class BPlusTree {
             // }
         }
 
+        public PageInfo getValue() {
+            return value;
+        }
+
+        public Object getKey() {
+            return key;
+        }
     }
 
     public static void main(String[] args) {

@@ -1,5 +1,7 @@
 package InputHandler;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -792,6 +794,27 @@ public class InputHandler {
         }
     }
 
+    private void csv(String originalString) {
+        //the awful regex matches 1 or more whitespaces that are not in quotes. don't ask how
+        String[] words = originalString.split("(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)\\s+");
+        String tablename = words[1];
+        try {
+            BufferedReader reader = new BufferedReader(new FileReader(words[2].substring(0, words[2].length()-1)));
+            String line = reader.readLine();
+            while (line != null) {
+                insertRecord(insertFromCSV(line, tablename));
+                line = reader.readLine();
+            }
+            reader.close();
+        } catch (IOException e) {
+            System.err.println("Error reading file: " + e.getMessage());
+        }
+    }
+
+    private String insertFromCSV(String in, String tablename) {
+        return "insert into " + tablename + " values (" + in.replaceAll(",", " ") + ");";
+    }
+
     private void select(String originalString) {
         String selectAttr = "";
 
@@ -1279,6 +1302,9 @@ public class InputHandler {
                 return true;
             case "help":
                 displayHelp();
+                break;
+            case "csv":
+                csv(originalString);
                 break;
             default:
                 System.out.println("---ERROR---");
