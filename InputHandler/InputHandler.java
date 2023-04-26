@@ -338,19 +338,32 @@ public class InputHandler {
             return false;
 
         String type = "int";
+        int typeInBytes = 4;
         for (SchemaAttribute schemaAttribute : schemaAttributes) {
             if (schemaAttribute.isPrimaryKey()) {
                 if (schemaAttribute.getTypeAsString().equals("varchar")
                         || schemaAttribute.getTypeAsString().equals("char")) {
                     type = "string";
+                    typeInBytes = (schemaAttribute.getLength() * 2) + 2;
                 } else {
                     type = schemaAttribute.getTypeAsString();
+                    switch (type){
+                        case "double": 
+                                        typeInBytes = 8;
+                                        break;
+                        case "boolean": 
+                                        typeInBytes = 2;
+                                        break;
+                        default: 
+                                typeInBytes = 4;
+                                break;
+                    }
                 }
             }
         }
 
-        // TODO FIX
-        BPlusTree bpt = new BPlusTree(4, type);
+        int pagesize = storageManager.getCatalog().getPageSize();
+        BPlusTree bpt = new BPlusTree(Math.floorDiv(pagesize, (8 + typeInBytes)), type);
         Schema schema = new Schema(tableName, schemaAttributes, this.storageManager.getCatalog(), bpt);
 
         if (!storageManager.addSchema(schema))
