@@ -247,6 +247,23 @@ public class StorageManager {
         } catch (IOException e) {
         }
 
+        if (!this.catalog.useIndexing()) {
+            int pageIndex = 0;
+            int pagesInTable = this.pageBuffer.getTotalPages(schema);
+            while (true) {
+                if (pagesInTable <= pageIndex)
+                    pageBuffer.createNewPage(schema);
+
+                Page page = this.pageBuffer.getPage(pageIndex, schema, true);
+
+                if (insertRecordInPage(page, record, schema, pagesInTable - 1 == pageIndex)[0])
+                    break;
+
+                pageIndex++;
+            }
+        }
+        else {
+
         Object primAttr = record.getData().get(schema.getIndexOfPrimaryKey()).getAttribute();
 
         BPlusTree bpt = schema.getBpt();
@@ -289,6 +306,7 @@ public class StorageManager {
         }
 
         // bpt.printAllLeafNodes();
+        }
     }
 
     public boolean doesRecordFollowConstraints(Record record, String tableName) {
