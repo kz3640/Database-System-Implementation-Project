@@ -23,7 +23,7 @@ public class BinaryReader {
     }
 
     // get the catalog from the catalog
-    public Catalog getCatalog(String path, int pageSize, int bufferSize) {
+    public Catalog getCatalog(String path, int pageSize, int bufferSize, boolean indexing) {
         try (RandomAccessFile raf = new RandomAccessFile(path + "catalog.txt", "rw")) {
             int savedPageSize = raf.readInt();
             int totalTables = raf.readInt();
@@ -32,7 +32,7 @@ public class BinaryReader {
                 pageSize = savedPageSize;
             }
 
-            Catalog catalog = new Catalog(path, pageSize, bufferSize);
+            Catalog catalog = new Catalog(path, pageSize, bufferSize, indexing);
 
             int tableIdToRead = 0;
             // loop through each table
@@ -84,9 +84,10 @@ public class BinaryReader {
                 Schema schema = new Schema(tableName, attributes, catalog, null);
                 schema.setIndex(String.valueOf(tableIdToRead));
 
-                BPlusTree bpt = readBPT(schema);
-                schema.addBPT(bpt);
-
+                if (catalog.useIndexing()) {
+                    BPlusTree bpt = readBPT(schema);
+                    schema.addBPT(bpt);
+                }
                 catalog.addSchema(schema);
 
                 tableIdToRead++;
@@ -106,19 +107,33 @@ public class BinaryReader {
     public BPlusTree readBPT(Schema schema) {
 
         String type = "int";
+        int typeInBytes = 4;
         for (SchemaAttribute schemaAttribute : schema.getAttributes()) {
             if (schemaAttribute.isPrimaryKey()) {
                 if (schemaAttribute.getTypeAsString().equals("varchar")
                         || schemaAttribute.getTypeAsString().equals("char")) {
                     type = "string";
+                    typeInBytes = (schemaAttribute.getLength() * 2) + 2;
                 } else {
                     type = schemaAttribute.getTypeAsString();
+                    switch (type){
+                        case "double": 
+                                        typeInBytes = 8;
+                                        break;
+                        case "boolean": 
+                                        typeInBytes = 2;
+                                        break;
+                        default: 
+                                typeInBytes = 4;
+                                break;
+                    }
                 }
             }
         }
-
         BPlusTree bpt = null;
-        bpt = new BPlusTree(4, type);
+        int pagesize = catalog.getPageSize();
+        bpt = new BPlusTree(Math.floorDiv(pagesize, (8 + typeInBytes)), type);
+        
 
         RandomAccessFile raf;
         try {
