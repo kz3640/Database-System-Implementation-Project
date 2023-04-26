@@ -219,23 +219,46 @@ public class BPlusTree {
             }
         }
 
-        // else if (this.type.equals("string")) {
-        // String[] keys = (String[]) this.root.keys;
-        // int i;
+        else if (this.type.equals("double")) {
 
-        // for (i = 0; i < this.root.degree - 1; i++) {
-        // if (((String) key).compareTo(keys[i]) < 0) {
-        // break;
-        // }
-        // }
+            Object[] objectKeys = this.root.keys;
+            Double[] keys = new Double[objectKeys.length];
+            for (int i = 0; i < objectKeys.length; i++) {
+                keys[i] = (Double) objectKeys[i];
+            }
+            int i;
 
-        // Node child = this.root.childPointers[i];
-        // if (child instanceof LeafNode) {
-        // return (LeafNode) child;
-        // } else {
-        // return findLeafNode((InternalNode) child, key);
-        // }
-        // }
+            for (i = 0; i < this.root.degree - 1; i++) {
+                if ((Double) key < keys[i]) {
+                    break;
+                }
+            }
+
+            Node child = this.root.childPointers[i];
+            if (child instanceof LeafNode) {
+                return (LeafNode) child;
+            } else {
+                return findLeafNode((InternalNode) child, key);
+            }
+        }
+
+        else if (this.type.equals("char") || this.type.equals("string")) {
+        String[] keys = (String[]) this.root.keys;
+        int i;
+
+        for (i = 0; i < this.root.degree - 1; i++) {
+        if (((String) key).compareTo(keys[i]) < 0) {
+        break;
+        }
+        }
+
+        Node child = this.root.childPointers[i];
+        if (child instanceof LeafNode) {
+        return (LeafNode) child;
+        } else {
+        return findLeafNode((InternalNode) child, key);
+        }
+        }
 
         return null;
     }
@@ -266,6 +289,46 @@ public class BPlusTree {
         }
 
         // add other types
+        else if (this.type.equals("double")) {
+
+            Double[] keys = new Double[node.keys.length];
+            for (int i = 0; i < node.keys.length; i++) {
+                keys[i] = (Double) node.keys[i];
+            }
+            int i;
+
+            for (i = 0; i < node.degree - 1; i++) {
+                if ((Double) key < keys[i]) {
+                    break;
+                }
+            }
+
+            Node childNode = node.childPointers[i];
+            if (childNode instanceof LeafNode) {
+                return (LeafNode) childNode;
+            } else {
+                return findLeafNode((InternalNode) node.childPointers[i], key);
+            }
+        }
+
+        else if (this.type.equals("char") || this.type.equals("string")) {
+        String[] keys = (String[]) node.keys;
+        int i;
+
+        for (i = 0; i < node.degree - 1; i++) {
+        if (((String) key).compareTo(keys[i]) < 0) {
+        break;
+        }
+        }
+
+        Node childNode = node.childPointers[i];
+        if (childNode instanceof LeafNode) {
+        return (LeafNode) childNode;
+        } else {
+        return findLeafNode((InternalNode) node.childPointers[i], key);
+        }
+        }
+
 
         return null;
     }
@@ -606,10 +669,19 @@ public class BPlusTree {
                         values.add(dp.value);
                     }
                 }
-                // add
-                // if (lowerBound <= dp.key && dp.key <= upperBound) {
-                // values.add(dp.value);
-                // }
+
+                else if (this.type.equals("double")) {
+                    if ((Double) lowerBound <= (Double) dp.key && (Double) dp.key <= (Double) upperBound) {
+                        values.add(dp.value);
+                    }
+                }
+
+                else if (this.type.equals("char") || this.type.equals("string")) {
+
+                    if ((((String) lowerBound).compareTo((String) dp.key) <= 0) && (((String) dp.key).compareTo((String) upperBound)) <= 0) {
+                        values.add(dp.value);
+                    }
+                }
             }
             currNode = currNode.rightSibling;
 
@@ -811,15 +883,33 @@ public class BPlusTree {
                     return -1;
                 }
             }
-            return 0;
 
-            // if (key == o.key) {
-            // return 0;
-            // } else if (key > o.key) {
-            // return 1;
-            // } else {
-            // return -1;
-            // }
+            else if (this.type.equals("double")) {
+                double i = (double) key;
+                double ok = (double) o.key;
+
+                if (i == ok) {
+                    return 0;
+                } else if (i > ok) {
+                    return 1;
+                } else {
+                    return -1;
+                }
+            }
+
+            if (this.type.equals("char") || this.type.equals("string")) {
+                String i = (String) key;
+                String ok = (String) o.key;
+
+                if (i.equals(ok)) {
+                    return 0;
+                } else if (i.compareTo(ok) > 0) {
+                    return 1;
+                } else {
+                    return -1;
+                }
+            }
+            return 0;
         }
 
     }
