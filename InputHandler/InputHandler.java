@@ -1133,6 +1133,9 @@ public class InputHandler {
     }
 
     private boolean isValidValue(String val, Schema schema) {
+        if (schema == null) {
+            return false;
+        }
         if (val.matches("true|false")) {
             return true;
         }

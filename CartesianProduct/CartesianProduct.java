@@ -61,11 +61,26 @@ public class CartesianProduct {
                 if (attribute.getAttributeName().equals(attributeString)) {
                     indexesOfAttributes.add(indexOfAttribute);
                 }
+                else if(attributeString.indexOf(".") > 0) {
+                    if (attribute.getAttributeName().equals(getStringAfterLastPeriod(attributeString))) {
+                        indexesOfAttributes.add(indexOfAttribute);
+                    }
+                }
             }
             indexOfAttribute++;
         }
 
         return indexesOfAttributes;
+    }
+
+    public static String getStringAfterLastPeriod(String input) {
+        int lastPeriodIndex = input.lastIndexOf(".");
+        if (lastPeriodIndex != -1) {
+            return input.substring(lastPeriodIndex + 1);
+        } else {
+            // handle case where no period is found in the input
+            return input;
+        }
     }
 
     // remove all attributes that aren't in the select
