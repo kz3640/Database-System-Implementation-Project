@@ -92,6 +92,47 @@ public class BPlusTree {
         return Arrays.binarySearch(dps, 0, numPairs, new DictionaryPair(t, new PageInfo(0, 0), this.type), c);
     }
 
+    public void shiftRecordsInPageDown(int pageIndex, int positionIndex, Object key) {
+
+        int newIndex = positionIndex;
+        if (this.root == null) {
+            LeafNode n = this.firstLeaf;
+            for (DictionaryPair dp : n.dictionary) {
+                if (dp != null) {
+                    if (dp.value.pageIndex > pageIndex) {
+                        return;
+                    }
+                    if (dp.value.positionIndex < positionIndex) {
+                        continue;
+                    }
+                    dp.value.positionIndex = newIndex++;
+                }
+            }
+            return;
+        }
+
+
+        LeafNode ln = findLeafNode(root, key);
+        while (true) {
+            for (DictionaryPair dp : ln.dictionary) {
+                if (dp != null) {
+                    if (dp.value.pageIndex > pageIndex) {
+                        return;
+                    }
+                    if (dp.value.positionIndex < positionIndex) {
+                        continue;
+                    }
+                    dp.value.positionIndex = newIndex++;
+                }
+            }
+
+            if (ln.rightSibling == null)
+                return;
+
+            ln = ln.rightSibling;
+        }
+    }
+
     public void updateAllPagesPastAndIncluding(int pageIndex, Page page, Schema schema) {
 
         ArrayList<Object> keysToSkip = new ArrayList<>();
@@ -100,13 +141,19 @@ public class BPlusTree {
             keysToSkip.add(record.getData().get(indOfPRim).getAttribute());
         }
 
+        int newIndexForSplitPage = 0;
+
         if (this.root == null) {
             LeafNode n = this.firstLeaf;
             for (DictionaryPair dp : n.dictionary) {
                 if (dp != null) {
                     if (dp.value.pageIndex >= pageIndex) {
-                        if (!keysToSkip.contains(dp.key))
+                        if (!keysToSkip.contains(dp.key)) {
+                            if (dp.value.pageIndex == pageIndex) {
+                                dp.value.positionIndex = newIndexForSplitPage++;
+                            }
                             dp.value.pageIndex++;
+                        }
                     }
                 }
             }
@@ -126,10 +173,14 @@ public class BPlusTree {
         LeafNode ln = (LeafNode) node;
 
         for (DictionaryPair dp : ln.dictionary) {
-            if (dp != null){
+            if (dp != null) {
                 if (dp.value.pageIndex >= pageIndex) {
-                    if (!keysToSkip.contains(dp.key)) 
+                    if (!keysToSkip.contains(dp.key)) {
+                        if (dp.value.pageIndex == pageIndex) {
+                            dp.value.positionIndex = newIndexForSplitPage++;
+                        }
                         dp.value.pageIndex++;
+                    }
                 }
             }
         }
@@ -139,8 +190,12 @@ public class BPlusTree {
             for (DictionaryPair dp : ln.dictionary) {
                 if (dp != null) {
                     if (dp.value.pageIndex >= pageIndex) {
-                        if (!keysToSkip.contains(dp.key))
+                        if (!keysToSkip.contains(dp.key)) {
+                            if (dp.value.pageIndex == pageIndex) {
+                                dp.value.positionIndex = newIndexForSplitPage++;
+                            }
                             dp.value.pageIndex++;
+                        }
                     }
                 }
             }
@@ -154,8 +209,10 @@ public class BPlusTree {
         if (this.root == null) {
             LeafNode n = this.firstLeaf;
             for (DictionaryPair dp : n.dictionary) {
-                if (dp != null)
-                    System.out.println(dp.value.pageIndex);
+                if (dp != null) {
+                    System.out.println("P: " + dp.value.pageIndex);
+                    System.out.println("I: " + dp.value.positionIndex);
+                }
             }
             return;
         }
@@ -173,15 +230,19 @@ public class BPlusTree {
         LeafNode ln = (LeafNode) node;
 
         for (DictionaryPair dp : ln.dictionary) {
-            if (dp != null)
-                System.out.println(dp.value.pageIndex);
+            if (dp != null) {
+                System.out.println("P: " + dp.value.pageIndex);
+                System.out.println("I: " + dp.value.positionIndex);
+            }
         }
 
         while (ln.rightSibling != null) {
             ln = ln.rightSibling;
             for (DictionaryPair dp : ln.dictionary) {
-                if (dp != null)
-                    System.out.println(dp.value.pageIndex);
+                if (dp != null) {
+                    System.out.println("P: " + dp.value.pageIndex);
+                    System.out.println("I: " + dp.value.positionIndex);
+                }
             }
         }
 
@@ -243,21 +304,21 @@ public class BPlusTree {
         }
 
         else if (this.type.equals("char") || this.type.equals("string")) {
-        String[] keys = (String[]) this.root.keys;
-        int i;
+            String[] keys = (String[]) this.root.keys;
+            int i;
 
-        for (i = 0; i < this.root.degree - 1; i++) {
-        if (((String) key).compareTo(keys[i]) < 0) {
-        break;
-        }
-        }
+            for (i = 0; i < this.root.degree - 1; i++) {
+                if (((String) key).compareTo(keys[i]) < 0) {
+                    break;
+                }
+            }
 
-        Node child = this.root.childPointers[i];
-        if (child instanceof LeafNode) {
-        return (LeafNode) child;
-        } else {
-        return findLeafNode((InternalNode) child, key);
-        }
+            Node child = this.root.childPointers[i];
+            if (child instanceof LeafNode) {
+                return (LeafNode) child;
+            } else {
+                return findLeafNode((InternalNode) child, key);
+            }
         }
 
         return null;
@@ -312,23 +373,22 @@ public class BPlusTree {
         }
 
         else if (this.type.equals("char") || this.type.equals("string")) {
-        String[] keys = (String[]) node.keys;
-        int i;
+            String[] keys = (String[]) node.keys;
+            int i;
 
-        for (i = 0; i < node.degree - 1; i++) {
-        if (((String) key).compareTo(keys[i]) < 0) {
-        break;
-        }
-        }
+            for (i = 0; i < node.degree - 1; i++) {
+                if (((String) key).compareTo(keys[i]) < 0) {
+                    break;
+                }
+            }
 
-        Node childNode = node.childPointers[i];
-        if (childNode instanceof LeafNode) {
-        return (LeafNode) childNode;
-        } else {
-        return findLeafNode((InternalNode) node.childPointers[i], key);
+            Node childNode = node.childPointers[i];
+            if (childNode instanceof LeafNode) {
+                return (LeafNode) childNode;
+            } else {
+                return findLeafNode((InternalNode) node.childPointers[i], key);
+            }
         }
-        }
-
 
         return null;
     }
@@ -644,7 +704,7 @@ public class BPlusTree {
         if (index < 0) {
             return null;
         } else if (index < 1) {
-            return new PageInfo(0, 0);
+            return new PageInfo(0, -1);
         } else {
             return dps[index - 1].value;
         }
@@ -678,7 +738,8 @@ public class BPlusTree {
 
                 else if (this.type.equals("char") || this.type.equals("string")) {
 
-                    if ((((String) lowerBound).compareTo((String) dp.key) <= 0) && (((String) dp.key).compareTo((String) upperBound)) <= 0) {
+                    if ((((String) lowerBound).compareTo((String) dp.key) <= 0)
+                            && (((String) dp.key).compareTo((String) upperBound)) <= 0) {
                         values.add(dp.value);
                     }
                 }
