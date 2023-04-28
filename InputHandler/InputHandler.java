@@ -337,22 +337,41 @@ public class InputHandler {
         if (schemaAttributes == null)
             return false;
 
-        String type = "int";
-        for (SchemaAttribute schemaAttribute : schemaAttributes) {
-            if (schemaAttribute.isPrimaryKey()) {
-                if (schemaAttribute.getTypeAsString().equals("varchar")
-                        || schemaAttribute.getTypeAsString().equals("char")) {
-                    type = "string";
-                } else {
-                    type = schemaAttribute.getTypeAsString();
+        Schema schema;
+        if (storageManager.getCatalog().useIndexing()){
+            String type = "int";
+            int typeInBytes = 4;
+            for (SchemaAttribute schemaAttribute : schemaAttributes) {
+                if (schemaAttribute.isPrimaryKey()) {
+                    if (schemaAttribute.getTypeAsString().equals("varchar")
+                            || schemaAttribute.getTypeAsString().equals("char")) {
+                        type = "string";
+                        typeInBytes = (schemaAttribute.getLength() * 2) + 2;
+                    } else {
+                        type = schemaAttribute.getTypeAsString();
+                        switch (type){
+                            case "double": 
+                                            typeInBytes = 8;
+                                            break;
+                            case "boolean": 
+                                            typeInBytes = 2;
+                                            break;
+                            default: 
+                                    typeInBytes = 4;
+                                    break;
+                        }
+                    }
                 }
             }
+
+            int pagesize = storageManager.getCatalog().getPageSize();
+            BPlusTree bpt = new BPlusTree(Math.floorDiv(pagesize, (8 + typeInBytes)), type);
+
+            schema = new Schema(tableName, schemaAttributes, this.storageManager.getCatalog(), bpt);
         }
-
-        // TODO FIX
-        BPlusTree bpt = new BPlusTree(4, type);
-        Schema schema = new Schema(tableName, schemaAttributes, this.storageManager.getCatalog(), bpt);
-
+        else {
+            schema = new Schema(tableName, schemaAttributes, this.storageManager.getCatalog(), null);
+        }
         if (!storageManager.addSchema(schema))
             return false;
 
@@ -1272,7 +1291,9 @@ public class InputHandler {
                 break;
             case "quit":
                 storageManager.writeBuffer();
+                if (storageManager.getCatalog().useIndexing()) {
                 storageManager.writeBPlusTrees();
+                }
                 return false;
             case "display":
                 display(originalString);
