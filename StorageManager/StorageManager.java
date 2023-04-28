@@ -87,52 +87,88 @@ public class StorageManager {
     }
 
     // add record into page.
-    // return:  [was added, did page split]
-    public boolean[] insertRecordInPage(Page page, Record record, Schema schema, boolean lastPage) {
+    // return: [was added, did page split]
+    public Object[] insertRecordInPage(Page page, Record record, Schema schema, boolean lastPage,
+            Integer positionIndex) {
         boolean shouldBeAdded = false;
         int indexToBeAdded = 0;
-        boolean[] rt = new boolean[2];
+        Object[] rt = new Object[3];
 
         ArrayList<Record> pageRecords = page.getRecords();
         if (pageRecords.size() == 0) {
             pageRecords.add(record);
             rt[0] = true;
             rt[1] = false;
+            rt[2] = 0;
             return rt;
         }
 
         int indexOfPrimaryKey = schema.getIndexOfPrimaryKey();
 
-        // compare primary key and insert if possible
-        for (int i = 0; i < pageRecords.size(); i++) {
-            Record recordInPage = pageRecords.get(i);
-            RecordAttribute primaryKeyRecord = recordInPage.getData().get(indexOfPrimaryKey);
-            RecordAttribute primaryKeyData = record.getData().get(indexOfPrimaryKey);
-            if (primaryKeyData.getType() == int.class) {
-                if ((Integer) primaryKeyRecord.getAttribute() > (Integer) primaryKeyData.getAttribute()) {
-                    shouldBeAdded = true;
-                    indexToBeAdded = i;
-                    break;
+        if (positionIndex != null) {
+            if (positionIndex < 0) {
+                indexToBeAdded = 0;
+                shouldBeAdded = true;
+            } else {
+                Record recordInPage = pageRecords.get(positionIndex);
+                RecordAttribute primaryKeyRecord = recordInPage.getData().get(indexOfPrimaryKey);
+                RecordAttribute primaryKeyData = record.getData().get(indexOfPrimaryKey);
+                if (primaryKeyData.getType() == int.class) {
+                    if ((Integer) primaryKeyRecord.getAttribute() < (Integer) primaryKeyData.getAttribute()) {
+                        shouldBeAdded = true;
+                        indexToBeAdded = positionIndex + 1;
+                    }
+                } else if (primaryKeyData.getType() == boolean.class) {
+                    if (((Boolean) primaryKeyRecord.getAttribute()) && ((Boolean) primaryKeyData.getAttribute())) {
+                        shouldBeAdded = true;
+                        indexToBeAdded = positionIndex + 1;
+                    }
+                } else if (primaryKeyData.getType() == Character.class || primaryKeyData.getType() == String.class) {
+                    String s1 = (String) primaryKeyRecord.getAttribute();
+                    String s2 = (String) primaryKeyData.getAttribute();
+                    if (s1.compareTo(s2) < 0) {
+                        shouldBeAdded = true;
+                        indexToBeAdded = positionIndex + 1;
+                    }
+                } else if (primaryKeyData.getType() == Double.class) {
+                    if ((Double) primaryKeyRecord.getAttribute() < (Double) primaryKeyData.getAttribute()) {
+                        shouldBeAdded = true;
+                        indexToBeAdded = positionIndex + 1;
+                    }
                 }
-            } else if (primaryKeyData.getType() == boolean.class) {
-                if (!((Boolean) primaryKeyRecord.getAttribute()) && ((Boolean) primaryKeyData.getAttribute())) {
-                    shouldBeAdded = true;
-                    indexToBeAdded = i;
-                    break;
-                }
-            } else if (primaryKeyData.getType() == Character.class || primaryKeyData.getType() == String.class) {
-                String s1 = (String) primaryKeyRecord.getAttribute();
-                String s2 = (String) primaryKeyData.getAttribute();
-                if (s1.compareTo(s2) > 0) {
-                    shouldBeAdded = true;
-                    indexToBeAdded = i;
-                    break;
-                }
-            } else if (primaryKeyData.getType() == Double.class) {
-                if ((Double) primaryKeyRecord.getAttribute() > (Double) primaryKeyData.getAttribute()) {
-                    shouldBeAdded = true;
-                    indexToBeAdded = i;
-                    break;
+            }
+        } else {
+            // compare primary key and insert if possible
+            for (int i = 0; i < pageRecords.size(); i++) {
+                Record recordInPage = pageRecords.get(i);
+                RecordAttribute primaryKeyRecord = recordInPage.getData().get(indexOfPrimaryKey);
+                RecordAttribute primaryKeyData = record.getData().get(indexOfPrimaryKey);
+                if (primaryKeyData.getType() == int.class) {
+                    if ((Integer) primaryKeyRecord.getAttribute() > (Integer) primaryKeyData.getAttribute()) {
+                        shouldBeAdded = true;
+                        indexToBeAdded = i;
+                        break;
+                    }
+                } else if (primaryKeyData.getType() == boolean.class) {
+                    if (!((Boolean) primaryKeyRecord.getAttribute()) && ((Boolean) primaryKeyData.getAttribute())) {
+                        shouldBeAdded = true;
+                        indexToBeAdded = i;
+                        break;
+                    }
+                } else if (primaryKeyData.getType() == Character.class || primaryKeyData.getType() == String.class) {
+                    String s1 = (String) primaryKeyRecord.getAttribute();
+                    String s2 = (String) primaryKeyData.getAttribute();
+                    if (s1.compareTo(s2) > 0) {
+                        shouldBeAdded = true;
+                        indexToBeAdded = i;
+                        break;
+                    }
+                } else if (primaryKeyData.getType() == Double.class) {
+                    if ((Double) primaryKeyRecord.getAttribute() > (Double) primaryKeyData.getAttribute()) {
+                        shouldBeAdded = true;
+                        indexToBeAdded = i;
+                        break;
+                    }
                 }
             }
         }
@@ -154,12 +190,19 @@ public class StorageManager {
             page.addRecord(indexToBeAdded, record);
             rt[0] = true;
             rt[1] = false;
+            rt[2] = indexToBeAdded;
             return rt;
         } else {
             page.addRecord(indexToBeAdded, record);
+
+            ArrayList<Record> records = page.getRecords();
+            int splitIndex = records.size() / 2;
+            int indexOfAdded = indexToBeAdded % splitIndex;
+
             splitPage(page);
             rt[0] = true;
             rt[1] = true;
+            rt[2] = indexOfAdded;
             return rt;
         }
     }
@@ -256,7 +299,7 @@ public class StorageManager {
 
                 Page page = this.pageBuffer.getPage(pageIndex, schema, true);
 
-                if (insertRecordInPage(page, record, schema, pagesInTable - 1 == pageIndex)[0])
+                if ((boolean)(insertRecordInPage(page, record, schema, pagesInTable - 1 == pageIndex, null)[0]))
                     break;
 
                 pageIndex++;
@@ -264,48 +307,55 @@ public class StorageManager {
         }
         else {
 
-        Object primAttr = record.getData().get(schema.getIndexOfPrimaryKey()).getAttribute();
+            Object primAttr = record.getData().get(schema.getIndexOfPrimaryKey()).getAttribute();
 
-        BPlusTree bpt = schema.getBpt();
+            BPlusTree bpt = schema.getBpt();
 
-        int pagesInTable = this.pageBuffer.getTotalPages(schema);
+            int pagesInTable = this.pageBuffer.getTotalPages(schema);
 
-        bpt.insert(primAttr, bpt.new PageInfo(-1, -1));
-        PageInfo pi = bpt.getPositionToInsert(primAttr);
+            bpt.insert(primAttr, bpt.new PageInfo(-1, -1));
+            PageInfo pi = bpt.getPositionToInsert(primAttr);
 
-        Integer pageIndex = pi.pageIndex;
+            Integer pageIndex = pi.pageIndex;
+            Integer positionIndex = pi.positionIndex;
 
-        if (pagesInTable <= pageIndex) {
-            pageBuffer.createNewPage(schema);
-        }
-
-        Page page = this.pageBuffer.getPage(pageIndex, schema, true);
-        boolean[] insertAttempt = insertRecordInPage(page, record, schema, pagesInTable - 1 == pageIndex);
-
-        boolean wasSplit = insertAttempt[1];
-
-        if (!insertAttempt[0]) {
-            pageIndex++;
             if (pagesInTable <= pageIndex) {
                 pageBuffer.createNewPage(schema);
             }
 
-            page = this.pageBuffer.getPage(pageIndex, schema, true);
+            int positionInserted;
 
-            boolean[] insertAttempt2 = insertRecordInPage(page, record, schema, pagesInTable - 1 == pageIndex);
-            if (!insertAttempt2[0]) {
-                System.out.println("ERROR");
+            Page page = this.pageBuffer.getPage(pageIndex, schema, true);
+            Object[] insertAttempt = insertRecordInPage(page, record, schema, pagesInTable - 1 == pageIndex, positionIndex);
+
+            boolean wasSplit = (boolean) insertAttempt[1];
+
+            if ((boolean) insertAttempt[0]) {
+                positionInserted = (int) insertAttempt[2];
+            } else {
+                pageIndex++;
+                if (pagesInTable <= pageIndex) {
+                    pageBuffer.createNewPage(schema);
+                }
+
+                page = this.pageBuffer.getPage(pageIndex, schema, true);
+
+                Object[] insertAttempt2 = insertRecordInPage(page, record, schema, pagesInTable - 1 == pageIndex,
+                        positionIndex);
+                if (!(boolean) insertAttempt2[0]) {
+                    System.out.println("ERROR");
+                }
+                wasSplit = (boolean) insertAttempt2[1];
+                positionInserted = (int) insertAttempt2[2];
+
             }
-            wasSplit = insertAttempt2[1];
-        }
-        
-        bpt.updatePageInfo(primAttr, bpt.new PageInfo(pageIndex, 0));
-        
-        if (wasSplit) {
-            bpt.updateAllPagesPastAndIncluding(pageIndex, page, schema);
-        }
 
-        // bpt.printAllLeafNodes();
+            bpt.updatePageInfo(primAttr, bpt.new PageInfo(pageIndex, positionInserted));
+
+            if (wasSplit) {
+                bpt.updateAllPagesPastAndIncluding(pageIndex, page, schema);
+            }
+            bpt.shiftRecordsInPageDown(pageIndex, positionInserted, primAttr);
         }
     }
 
