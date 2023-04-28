@@ -488,7 +488,7 @@ public class BPlusTree {
     public void insert(Object key, PageInfo pageInfo) {
         if (isEmpty()) {
 
-            LeafNode ln = new LeafNode(this.m, new DictionaryPair(key, pageInfo, this.type));
+            LeafNode ln = new LeafNode(this.m, new DictionaryPair(key, pageInfo, this.type), null);
 
             this.firstLeaf = ln;
 
@@ -545,6 +545,45 @@ public class BPlusTree {
                         in = in.parent;
                     }
                 }
+            }
+        }
+    }
+
+    public void delete(Object key) {
+        if (isEmpty()) {
+            // the tree is empty, so there's nothing to delete
+            return;
+        }
+
+        // find the leaf node containing the key
+        LeafNode leafNode = findLeafNode(key);
+
+        // check if the key exists in the leaf node
+        int index = leafNode.indexOf(key);
+        if (index == -1) {
+            // the key doesn't exist in the tree, so there's nothing to delete
+            return;
+        }
+
+        // delete the key from the leaf node
+        leafNode.delete(index);
+
+        // check if the leaf node is underfull
+        if (leafNode.isDeficient()) {
+            // try to redistribute keys with a sibling leaf node
+            if (leafNode.redistribute()) {
+                return;
+            }
+
+            // try to merge with a sibling leaf node
+            LeafNode sibling = leafNode.findSibling();
+            if (sibling != null && sibling.isMergeable()) {
+                leafNode.merge(sibling);
+                if (this.root.isDeficient()) {
+                    // if the root node is underfull after the merge, remove the root node
+                    this.root = (InternalNode) this.root.getChildren()[0];
+                }
+                return;
             }
         }
     }
@@ -625,7 +664,13 @@ public class BPlusTree {
     }
 
     public class Node {
+        public Node leftSibling;
+        public Node rightSibling;
         InternalNode parent;
+
+        public InternalNode getParent() {
+            return parent;
+        }
     }
 
     private class InternalNode extends Node {
@@ -636,6 +681,10 @@ public class BPlusTree {
         InternalNode rightSibling;
         Object[] keys;
         Node[] childPointers;
+
+        private Node[] getChildren() {
+            return childPointers;
+        }
 
         private void appendChildPointer(Node pointer) {
             this.childPointers[degree] = pointer;
@@ -716,6 +765,19 @@ public class BPlusTree {
             this.keys = keys;
             this.childPointers = pointers;
         }
+
+        public int indexOfChild(Node leafNode) {
+            for (int i = 0; i < childPointers.length; i++) {
+                if (childPointers[i].equals(leafNode)) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        public void setKey(int index, DictionaryPair dictionaryPair) {
+            this.keys[index] = dictionaryPair;
+        }
     }
 
     public class PageInfo {
@@ -735,6 +797,54 @@ public class BPlusTree {
         LeafNode leftSibling;
         LeafNode rightSibling;
         DictionaryPair[] dictionary;
+
+        public void merge(LeafNode sibling) {
+            // add all keys from the sibling node to this node
+            for (int i = 0; i < sibling.dictionary.length; i++) {
+                insert(sibling.dictionary[i]);
+            }
+
+            // update sibling pointers
+            if (sibling.rightSibling != null) {
+                sibling.rightSibling.leftSibling = this;
+            }
+            this.rightSibling = sibling.rightSibling;
+
+            // remove sibling node from parent
+            int index = getParent().findIndexOfPointer(sibling);
+            getParent().removePointer(index);
+        }
+
+        public DictionaryPair[] getKeys() {
+            return dictionary;
+        }
+
+        public LeafNode findSibling() {
+            if (this.parent == null) {
+                // the root node has no siblings
+                return null;
+            }
+
+            InternalNode parentNode = this.parent;
+            int index = parentNode.indexOfChild(this);
+
+            // check left sibling
+            if (this.leftSibling != null) {
+                if (this.leftSibling.getKeys().length > this.minNumPairs) {
+                    return this.leftSibling;
+                }
+            }
+
+            // check right sibling
+            if (this.rightSibling != null) {
+                if (this.rightSibling.getKeys().length > this.minNumPairs) {
+                    return this.rightSibling;
+                }
+            }
+
+            // no suitable sibling found
+            return null;
+        }
 
         public void delete(int index) {
             this.dictionary[index] = null;
@@ -769,12 +879,13 @@ public class BPlusTree {
             return numPairs == minNumPairs;
         }
 
-        public LeafNode(int m, DictionaryPair dp) {
+        public LeafNode(int m, DictionaryPair dp, InternalNode parent) {
             this.maxNumPairs = m - 1;
             this.minNumPairs = (int) (Math.ceil(m / 2) - 1);
             this.dictionary = new DictionaryPair[m];
             this.numPairs = 0;
             this.insert(dp);
+            this.parent = parent;
         }
 
         public LeafNode(int m, DictionaryPair[] dps, InternalNode parent) {
@@ -783,6 +894,70 @@ public class BPlusTree {
             this.dictionary = dps;
             this.numPairs = linearNullSearch(dps);
             this.parent = parent;
+        }
+
+        public int indexOf(Object key) {
+            for (int i = 0; i < dictionary.length; i++) {
+                if (key.equals(dictionary[i].key)) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        public boolean redistribute() {
+            // Check if there are any siblings
+            LeafNode sibling = findSibling();
+            if (sibling == null) {
+                // No siblings, redistribution is not possible
+                return false;
+            }
+
+            // Find the index of the current node in the parent's children array
+            int index = getParent().indexOfChild(this);
+
+            // Determine which sibling has more keys
+            LeafNode leftSibling, rightSibling;
+            if (index > 0) {
+                leftSibling = (LeafNode) getParent().getChildren()[index - 1];
+                rightSibling = this;
+            } else {
+                leftSibling = this;
+                rightSibling = (LeafNode) getParent().getChildren()[index + 1];
+            }
+
+            // Check if redistribution is possible
+            if (leftSibling.getKeys().length > minNumPairs && rightSibling.getKeys().length > minNumPairs) {
+                // Both siblings have enough keys, redistribute
+                Object key = rightSibling.dictionary[0].key;
+                PageInfo value = rightSibling.dictionary[0].value;
+                String type = rightSibling.dictionary[0].type;
+                rightSibling.delete(0);
+                leftSibling.insert(new DictionaryPair(key, value, type));
+                getParent().setKey(index, rightSibling.dictionary[0]);
+                return true;
+            } else if (leftSibling.getKeys().length > minNumPairs) {
+                // Left sibling has enough keys, redistribute from left to right
+                Object key = leftSibling.dictionary[leftSibling.getKeys().length - 1].key;
+                PageInfo value = leftSibling.dictionary[leftSibling.getKeys().length - 1].value;
+                String type = rightSibling.dictionary[leftSibling.getKeys().length - 1].type;
+                leftSibling.delete(leftSibling.getKeys().length - 1);
+                rightSibling.insert(new DictionaryPair(key, value, type));
+                getParent().setKey(index, rightSibling.dictionary[0]);
+                return true;
+            } else if (rightSibling.getKeys().length > minNumPairs) {
+                // Right sibling has enough keys, redistribute from right to left
+                Object key = rightSibling.dictionary[0].key;
+                PageInfo value = rightSibling.dictionary[0].value;
+                String type = rightSibling.dictionary[0].type;
+                rightSibling.delete(0);
+                leftSibling.insert(new DictionaryPair(key, value, type));
+                getParent().setKey(index, rightSibling.dictionary[0]);
+                return true;
+            } else {
+                // Both siblings have the minimum number of keys, redistribution is not possible
+                return false;
+            }
         }
     }
 
