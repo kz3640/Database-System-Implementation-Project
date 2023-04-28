@@ -316,47 +316,48 @@ public class StorageManager {
             bpt.insert(primAttr, bpt.new PageInfo(-1, -1));
             PageInfo pi = bpt.getPositionToInsert(primAttr);
 
-        Integer pageIndex = pi.pageIndex;
-        Integer positionIndex = pi.positionIndex;
+            Integer pageIndex = pi.pageIndex;
+            Integer positionIndex = pi.positionIndex;
 
-        if (pagesInTable <= pageIndex) {
-            pageBuffer.createNewPage(schema);
-        }
-
-        int positionInserted;
-
-        Page page = this.pageBuffer.getPage(pageIndex, schema, true);
-        Object[] insertAttempt = insertRecordInPage(page, record, schema, pagesInTable - 1 == pageIndex, positionIndex);
-
-        boolean wasSplit = (boolean) insertAttempt[1];
-
-        if ((boolean) insertAttempt[0]) {
-            positionInserted = (int) insertAttempt[2];
-        } else {
-            pageIndex++;
             if (pagesInTable <= pageIndex) {
                 pageBuffer.createNewPage(schema);
             }
 
-                page = this.pageBuffer.getPage(pageIndex, schema, true);
-                page = this.pageBuffer.getPage(pageIndex, schema, true);
+            int positionInserted;
 
-            Object[] insertAttempt2 = insertRecordInPage(page, record, schema, pagesInTable - 1 == pageIndex,
-                    positionIndex);
-            if (!(boolean) insertAttempt2[0]) {
-                System.out.println("ERROR");
+            Page page = this.pageBuffer.getPage(pageIndex, schema, true);
+            Object[] insertAttempt = insertRecordInPage(page, record, schema, pagesInTable - 1 == pageIndex, positionIndex);
+
+            boolean wasSplit = (boolean) insertAttempt[1];
+
+            if ((boolean) insertAttempt[0]) {
+                positionInserted = (int) insertAttempt[2];
+            } else {
+                pageIndex++;
+                if (pagesInTable <= pageIndex) {
+                    pageBuffer.createNewPage(schema);
+                }
+
+                    page = this.pageBuffer.getPage(pageIndex, schema, true);
+                    page = this.pageBuffer.getPage(pageIndex, schema, true);
+
+                Object[] insertAttempt2 = insertRecordInPage(page, record, schema, pagesInTable - 1 == pageIndex,
+                        positionIndex);
+                if (!(boolean) insertAttempt2[0]) {
+                    System.out.println("ERROR");
+                }
+                wasSplit = (boolean) insertAttempt2[1];
+                positionInserted = (int) insertAttempt2[2];
+
             }
-            wasSplit = (boolean) insertAttempt2[1];
-            positionInserted = (int) insertAttempt2[2];
 
+            bpt.updatePageInfo(primAttr, bpt.new PageInfo(pageIndex, positionInserted));
+
+            if (wasSplit) {
+                bpt.updateAllPagesPastAndIncluding(pageIndex, page, schema);
+            }
+            bpt.shiftRecordsInPageDown(pageIndex, positionInserted, primAttr);
         }
-
-        bpt.updatePageInfo(primAttr, bpt.new PageInfo(pageIndex, positionInserted));
-
-        if (wasSplit) {
-            bpt.updateAllPagesPastAndIncluding(pageIndex, page, schema);
-        }
-        bpt.shiftRecordsInPageDown(pageIndex, positionInserted, primAttr);
     }
 
     public boolean doesRecordFollowConstraints(Record record, String tableName) {
@@ -488,42 +489,49 @@ public class StorageManager {
     }
 
     public boolean delete(String tableName, String logic) {
-        this.catalog.getSchemaByName(tableName);
-        Schema schema = this.catalog.getSchemaByName(tableName);
+        if (!this.catalog.useIndexing()) {
+            this.catalog.getSchemaByName(tableName);
+            Schema schema = this.catalog.getSchemaByName(tableName);
 
-        int pageIndex = 0;
+            int pageIndex = 0;
 
-        int recordsDeleted = 0;
+            int recordsDeleted = 0;
 
-        while (true) {
-            int pagesInTable = this.pageBuffer.getTotalPages(schema);
-            if (pagesInTable <= pageIndex)
-                break;
+            while (true) {
+                int pagesInTable = this.pageBuffer.getTotalPages(schema);
+                if (pagesInTable <= pageIndex)
+                    break;
 
-            Page page = this.pageBuffer.getPage(pageIndex, schema, true);
+                Page page = this.pageBuffer.getPage(pageIndex, schema, true);
 
-            ArrayList<Record> newRecords = new ArrayList<>();
-            for (Record record : page.getRecords()) {
-                if (!BooleanExpressionEvaluator.evaluate(logic, record, schema)) {
-                    newRecords.add(record);
-                } else {
-                    recordsDeleted++;
+                ArrayList<Record> newRecords = new ArrayList<>();
+                for (Record record : page.getRecords()) {
+                    if (!BooleanExpressionEvaluator.evaluate(logic, record, schema)) {
+                        newRecords.add(record);
+                    } else {
+                        recordsDeleted++;
+                    }
                 }
+
+                if (newRecords.size() == 0) {
+                    pageBuffer.removePage(page);
+                    removePage(page);
+                    continue;
+                } else if (newRecords.size() != page.getRecords().size()) {
+                    page.setRecords(newRecords);
+                }
+
+                pageIndex++;
             }
 
-            if (newRecords.size() == 0) {
-                pageBuffer.removePage(page);
-                removePage(page);
-                continue;
-            } else if (newRecords.size() != page.getRecords().size()) {
-                page.setRecords(newRecords);
-            }
-
-            pageIndex++;
+            System.out.println(recordsDeleted + " record(s) deleted.");
+            return true;
         }
-
-        System.out.println(recordsDeleted + " record(s) deleted.");
-        return true;
+        else {
+            //TODO FIX
+            // bplustree delete
+            return true;
+        }
     }
 
     private boolean deleteSingleRecord(String tableName, String logic) {
@@ -580,68 +588,76 @@ public class StorageManager {
     }
 
     public boolean update(String tableName, String col, String val, String logic) {
-        this.catalog.getSchemaByName(tableName);
-        Schema schema = this.catalog.getSchemaByName(tableName);
 
-        int pageIndex = 0;
-        int recordsUpdated = 0;
-        while (true) {
-            int pagesInTable = this.pageBuffer.getTotalPages(schema);
-            if (pagesInTable <= pageIndex)
-                break;
+        if (!this.catalog.useIndexing()) {
+            this.catalog.getSchemaByName(tableName);
+            Schema schema = this.catalog.getSchemaByName(tableName);
 
-            Page page = this.pageBuffer.getPage(pageIndex, schema, true);
+            int pageIndex = 0;
+            int recordsUpdated = 0;
+            while (true) {
+                int pagesInTable = this.pageBuffer.getTotalPages(schema);
+                if (pagesInTable <= pageIndex)
+                    break;
 
-            boolean wasPageDeleted = false;
-            for (Record record : page.getRecords()) {
-                if (BooleanExpressionEvaluator.evaluate(logic, record, schema)) {
-                    Record updatedRecord = new Record(record);
+                Page page = this.pageBuffer.getPage(pageIndex, schema, true);
 
-                    // needed for logic
-                    int indexOfPrimaryKey = schema.getIndexOfPrimaryKey();
-                    String nameOfPrimaryAttribute = schema.getAttributes().get(indexOfPrimaryKey).getAttributeName();
-                    RecordAttribute recordAttribute = updatedRecord.getData().get(schema.getIndexOfPrimaryKey());
-                    String valueOfPrimaryString = recordAttribute.getAttribute().toString();
+                boolean wasPageDeleted = false;
+                for (Record record : page.getRecords()) {
+                    if (BooleanExpressionEvaluator.evaluate(logic, record, schema)) {
+                        Record updatedRecord = new Record(record);
 
-                    // new logic for deleting
-                    String logicString = nameOfPrimaryAttribute + " = " + valueOfPrimaryString;
+                        // needed for logic
+                        int indexOfPrimaryKey = schema.getIndexOfPrimaryKey();
+                        String nameOfPrimaryAttribute = schema.getAttributes().get(indexOfPrimaryKey).getAttributeName();
+                        RecordAttribute recordAttribute = updatedRecord.getData().get(schema.getIndexOfPrimaryKey());
+                        String valueOfPrimaryString = recordAttribute.getAttribute().toString();
 
-                    // update record
-                    int indexOfAttribute = schema.getIndexOfAttributeName(col);
-                    String AttributeTypeAsString = schema.getAttributes().get(indexOfAttribute).getTypeAsString();
-                    RecordAttribute recordAttributeToChange = updatedRecord.getData().get(indexOfAttribute);
-                    Object o = recordAttributeToChange.getAttribute();
-                    if (o.equals(Util.convertToType(AttributeTypeAsString, val))) {
-                        continue;
+                        // new logic for deleting
+                        String logicString = nameOfPrimaryAttribute + " = " + valueOfPrimaryString;
+
+                        // update record
+                        int indexOfAttribute = schema.getIndexOfAttributeName(col);
+                        String AttributeTypeAsString = schema.getAttributes().get(indexOfAttribute).getTypeAsString();
+                        RecordAttribute recordAttributeToChange = updatedRecord.getData().get(indexOfAttribute);
+                        Object o = recordAttributeToChange.getAttribute();
+                        if (o.equals(Util.convertToType(AttributeTypeAsString, val))) {
+                            continue;
+                        }
+                        recordAttributeToChange.setNewAttributeValue(Util.convertToType(AttributeTypeAsString, val));
+
+                        wasPageDeleted = deleteSingleRecord(tableName, logicString);
+
+                        if (!(doesRecordFollowConstraints(updatedRecord, tableName)
+                                && schema.doesRecordFollowSchema(updatedRecord))) {
+                            // if it fails to add after
+                            addRecord(record, schema);
+                            System.out.println("Unable to update record: ");
+                            record.printRecord();
+                            System.out.println(recordsUpdated + " records updated.");
+                            return false;
+                        }
+
+                        // record is now updated
+                        addRecord(updatedRecord, schema);
+                        recordsUpdated++;
                     }
-                    recordAttributeToChange.setNewAttributeValue(Util.convertToType(AttributeTypeAsString, val));
-
-                    wasPageDeleted = deleteSingleRecord(tableName, logicString);
-
-                    if (!(doesRecordFollowConstraints(updatedRecord, tableName)
-                            && schema.doesRecordFollowSchema(updatedRecord))) {
-                        // if it fails to add after
-                        addRecord(record, schema);
-                        System.out.println("Unable to update record: ");
-                        record.printRecord();
-                        System.out.println(recordsUpdated + " records updated.");
-                        return false;
-                    }
-
-                    // record is now updated
-                    addRecord(updatedRecord, schema);
-                    recordsUpdated++;
                 }
+
+                if (!wasPageDeleted) {
+                    pageIndex++;
+                }
+
             }
 
-            if (!wasPageDeleted) {
-                pageIndex++;
-            }
-
+            System.out.println(recordsUpdated + " records updated.");
+            return true;
         }
-
-        System.out.println(recordsUpdated + " records updated.");
-        return true;
+        else {
+            // TODO FIX
+            // b+tree
+            return true;
+        }
     }
 
     // empty buffer
