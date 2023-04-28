@@ -529,7 +529,44 @@ public class StorageManager {
         }
         else {
             //TODO FIX
-            // bplustree delete
+            this.catalog.getSchemaByName(tableName);
+            Schema schema = this.catalog.getSchemaByName(tableName);
+            BPlusTree bpt = schema.getBpt();
+
+            int pageIndex = 0;
+
+            int recordsDeleted = 0;
+
+            while (true) {
+                int pagesInTable = this.pageBuffer.getTotalPages(schema);
+                if (pagesInTable <= pageIndex)
+                    break;
+
+                Page page = this.pageBuffer.getPage(pageIndex, schema, true);
+
+                ArrayList<Record> newRecords = new ArrayList<>();
+                for (Record record : page.getRecords()) {
+                    if (!BooleanExpressionEvaluator.evaluate(logic, record, schema)) {
+                        newRecords.add(record);
+                    } else {
+                        Object key = record.getData().get(schema.getIndexOfPrimaryKey()).getAttribute();
+                        bpt.delete(key);
+                        recordsDeleted++;
+                    }
+                }
+
+                if (newRecords.size() == 0) {
+                    pageBuffer.removePage(page);
+                    removePage(page);
+                    continue;
+                } else if (newRecords.size() != page.getRecords().size()) {
+                    page.setRecords(newRecords);
+                }
+
+                pageIndex++;
+            }
+
+            System.out.println(recordsDeleted + " record(s) deleted.");
             return true;
         }
     }
