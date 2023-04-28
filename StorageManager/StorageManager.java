@@ -299,7 +299,7 @@ public class StorageManager {
 
                 Page page = this.pageBuffer.getPage(pageIndex, schema, true);
 
-                if (insertRecordInPage(page, record, schema, pagesInTable - 1 == pageIndex)[0])
+                if ((boolean)(insertRecordInPage(page, record, schema, pagesInTable - 1 == pageIndex, null)[0]))
                     break;
 
                 pageIndex++;
@@ -307,14 +307,14 @@ public class StorageManager {
         }
         else {
 
-        Object primAttr = record.getData().get(schema.getIndexOfPrimaryKey()).getAttribute();
+            Object primAttr = record.getData().get(schema.getIndexOfPrimaryKey()).getAttribute();
 
-        BPlusTree bpt = schema.getBpt();
+            BPlusTree bpt = schema.getBpt();
 
-        int pagesInTable = this.pageBuffer.getTotalPages(schema);
+            int pagesInTable = this.pageBuffer.getTotalPages(schema);
 
-        bpt.insert(primAttr, bpt.new PageInfo(-1, -1));
-        PageInfo pi = bpt.getPositionToInsert(primAttr);
+            bpt.insert(primAttr, bpt.new PageInfo(-1, -1));
+            PageInfo pi = bpt.getPositionToInsert(primAttr);
 
         Integer pageIndex = pi.pageIndex;
         Integer positionIndex = pi.positionIndex;
@@ -338,7 +338,7 @@ public class StorageManager {
                 pageBuffer.createNewPage(schema);
             }
 
-            page = this.pageBuffer.getPage(pageIndex, schema, true);
+                page = this.pageBuffer.getPage(pageIndex, schema, true);
 
             Object[] insertAttempt2 = insertRecordInPage(page, record, schema, pagesInTable - 1 == pageIndex,
                     positionIndex);
