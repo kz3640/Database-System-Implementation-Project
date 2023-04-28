@@ -339,6 +339,7 @@ public class StorageManager {
             }
 
                 page = this.pageBuffer.getPage(pageIndex, schema, true);
+                page = this.pageBuffer.getPage(pageIndex, schema, true);
 
             Object[] insertAttempt2 = insertRecordInPage(page, record, schema, pagesInTable - 1 == pageIndex,
                     positionIndex);
