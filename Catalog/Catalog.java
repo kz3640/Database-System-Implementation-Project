@@ -11,12 +11,18 @@ public class Catalog {
     private int pageSize;
     private int bufferSize;
     private Map<String, Schema> tables;
+    private Boolean indexing;
 
-    public Catalog(String path, int pageSize, int bufferSize) {
+    public Catalog(String path, int pageSize, int bufferSize, boolean indexing) {
         this.pageSize = pageSize;
         this.bufferSize = bufferSize;
         this.path = path;
         this.tables = new HashMap<>();
+        this.indexing = indexing;
+    }
+
+    public boolean useIndexing() {
+        return this.indexing;
     }
 
     public Map<String, Schema> getTables() {

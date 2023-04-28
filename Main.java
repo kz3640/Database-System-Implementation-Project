@@ -12,8 +12,13 @@ import IO.BinaryReader;
 public class Main {
 
     public static void main(String[] args) throws IOException {
-        if (args.length != 3) {
-            System.out.println("Expected 3 arguments, got " + args.length);
+        if (args.length != 3 || args.length != 4) {
+            System.out.println("Expected 3 or 4 arguments, got " + args.length);
+            return;
+        }
+
+        if (args.length == 4 && !args[3].equals("indexing")) {
+            System.out.println("Expected argument 4 as 'indexing', got " + args[3]);
             return;
         }
 
@@ -26,10 +31,14 @@ public class Main {
         String path = null;
         int pageSize = 0;
         int bufferSize = 0;
+        boolean indexing = false;
         try {
             path = args[0];
             pageSize = Integer.parseInt(args[1]);
             bufferSize = Integer.parseInt(args[2]);
+            if (args.length == 4) {
+                indexing = true;
+            }
         } catch (Exception _e) {
             System.out.println("Unexpected program parameters. See usage");
             System.exit(0);
@@ -52,7 +61,7 @@ public class Main {
         } else {
             System.out.println("DB already exist, using predefined page size.");
         }
-        catalog = reader.getCatalog(path, pageSize, bufferSize);
+        catalog = reader.getCatalog(path, pageSize, bufferSize, indexing);
         System.out.println("Page size: " + catalog.getPageSize());
         writer.setCatalog(catalog);
 
