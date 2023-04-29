@@ -693,6 +693,73 @@ public class StorageManager {
         else {
             // TODO FIX
             // b+tree
+            this.catalog.getSchemaByName(tableName);
+            Schema schema = this.catalog.getSchemaByName(tableName);
+            BPlusTree bpt = schema.getBpt();
+
+            int pageIndex = 0;
+            int recordsUpdated = 0;
+            while (true) {
+                int pagesInTable = this.pageBuffer.getTotalPages(schema);
+                if (pagesInTable <= pageIndex)
+                    break;
+
+                Page page = this.pageBuffer.getPage(pageIndex, schema, true);
+
+                boolean wasPageDeleted = false;
+                for (Record record : page.getRecords()) {
+                    if (BooleanExpressionEvaluator.evaluate(logic, record, schema)) {
+                        Record updatedRecord = new Record(record);
+
+                        // needed for logic
+                        int indexOfPrimaryKey = schema.getIndexOfPrimaryKey();
+                        String nameOfPrimaryAttribute = schema.getAttributes().get(indexOfPrimaryKey).getAttributeName();
+                        RecordAttribute recordAttribute = updatedRecord.getData().get(schema.getIndexOfPrimaryKey());
+                        String valueOfPrimaryString = recordAttribute.getAttribute().toString();
+
+                        // new logic for deleting
+                        String logicString = nameOfPrimaryAttribute + " = " + valueOfPrimaryString;
+
+                        // update record
+                        int indexOfAttribute = schema.getIndexOfAttributeName(col);
+                        String AttributeTypeAsString = schema.getAttributes().get(indexOfAttribute).getTypeAsString();
+                        RecordAttribute recordAttributeToChange = updatedRecord.getData().get(indexOfAttribute);
+                        Object o = recordAttributeToChange.getAttribute();
+                        if (o.equals(Util.convertToType(AttributeTypeAsString, val))) {
+                            continue;
+                        }
+                        recordAttributeToChange.setNewAttributeValue(Util.convertToType(AttributeTypeAsString, val));
+
+                        wasPageDeleted = deleteSingleRecord(tableName, logicString);
+
+                        // This takes the old record out from the b-plus tree
+                        Object key = record.getData().get(schema.getIndexOfPrimaryKey()).getAttribute();
+                        bpt.delete(key);
+
+                        if (!(doesRecordFollowConstraints(updatedRecord, tableName)
+                                && schema.doesRecordFollowSchema(updatedRecord))) {
+                            // if it fails to add after
+                            addRecord(record, schema);
+                            System.out.println("Unable to update record: ");
+                            record.printRecord();
+                            System.out.println(recordsUpdated + " records updated.");
+                            return false;
+                        }
+
+                        // record is now updated
+                        // also adds the updated record back to the b-plus tree
+                        addRecord(updatedRecord, schema);
+                        recordsUpdated++;
+                    }
+                }
+
+                if (!wasPageDeleted) {
+                    pageIndex++;
+                }
+
+            }
+
+            System.out.println(recordsUpdated + " records updated.");
             return true;
         }
     }
