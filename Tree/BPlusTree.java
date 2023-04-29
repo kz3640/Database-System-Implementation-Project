@@ -549,6 +549,47 @@ public class BPlusTree {
         }
     }
 
+    public void shiftRecordsInPageDown(int pageIndex, int positionIndex, Object key) {
+
+        int newIndex = positionIndex;
+        if (this.root == null) {
+            LeafNode n = this.firstLeaf;
+            for (DictionaryPair dp : n.dictionary) {
+                if (dp != null) {
+                    if (dp.value.pageIndex > pageIndex) {
+                        return;
+                    }
+                    if (dp.value.positionIndex < positionIndex) {
+                        continue;
+                    }
+                    dp.value.positionIndex = newIndex++;
+                }
+            }
+            return;
+        }
+
+
+        LeafNode ln = findLeafNode(root, key);
+        while (true) {
+            for (DictionaryPair dp : ln.dictionary) {
+                if (dp != null) {
+                    if (dp.value.pageIndex > pageIndex) {
+                        return;
+                    }
+                    if (dp.value.positionIndex < positionIndex) {
+                        continue;
+                    }
+                    dp.value.positionIndex = newIndex++;
+                }
+            }
+
+            if (ln.rightSibling == null)
+                return;
+
+            ln = ln.rightSibling;
+        }
+    }
+
     public void delete(Object key) {
         if (isEmpty()) {
             // the tree is empty, so there's nothing to delete
